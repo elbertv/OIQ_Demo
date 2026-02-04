@@ -96,6 +96,7 @@ const populationData = [
 const navLinks = document.querySelectorAll('.nav-link');
 const sections = document.querySelectorAll('.section');
 const startPersonaBtn = document.getElementById('start-persona-btn');
+const startPersonaIcon = document.getElementById('start-persona-icon');
 const cancelWizardBtn = document.getElementById('cancel-wizard');
 const nextStepBtn = document.getElementById('next-step');
 const backStepBtn = document.getElementById('back-step');
@@ -111,7 +112,6 @@ const campaignTableBody = document.getElementById('campaign-table-body');
 const populationTableBody = document.getElementById('population-table-body');
 const campaignSearch = document.getElementById('campaign-search');
 const metricCards = document.querySelectorAll('.metric-card');
-const scatterChart = document.getElementById('scatter-chart');
 const usaMap = document.getElementById('usa-map');
 
 // ----------------------------------------
@@ -208,9 +208,6 @@ function nextWizardStep() {
         // Show next content
         wizardSteps[currentStep - 1].classList.add('hidden');
         wizardSteps[currentStep].classList.remove('hidden');
-
-        // Generate scatter chart
-        generateScatterChart();
     }
 }
 
@@ -253,6 +250,11 @@ function closeSuccessModal() {
 
 // Wizard event listeners
 if (startPersonaBtn) startPersonaBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    openPersonaWizard();
+});
+
+if (startPersonaIcon) startPersonaIcon.addEventListener('click', (e) => {
     e.preventDefault();
     openPersonaWizard();
 });
@@ -359,49 +361,7 @@ function populatePopulationTable() {
     `).join('');
 }
 
-// ----------------------------------------
-// Scatter Chart Generation
-// ----------------------------------------
 
-/**
- * Generate a scatter plot with random data points
- */
-function generateScatterChart() {
-    if (!scatterChart) return;
-
-    // Clear existing dots
-    scatterChart.innerHTML = '';
-
-    // Generate random data points
-    const numPoints = 40;
-    for (let i = 0; i < numPoints; i++) {
-        const dot = document.createElement('div');
-        dot.className = 'scatter-dot';
-
-        // Random positioning with some clustering in the middle-right
-        const x = 20 + Math.random() * 70;
-        const y = 10 + Math.random() * 80;
-
-        dot.style.left = `${x}%`;
-        dot.style.top = `${y}%`;
-
-        // Random size variation
-        const size = 8 + Math.random() * 8;
-        dot.style.width = `${size}px`;
-        dot.style.height = `${size}px`;
-
-        scatterChart.appendChild(dot);
-    }
-
-    // Add hover tooltip indicator
-    const tooltip = document.createElement('div');
-    tooltip.className = 'scatter-tooltip';
-    tooltip.textContent = '6320';
-    tooltip.style.left = '45%';
-    tooltip.style.top = '60%';
-    tooltip.style.opacity = '1';
-    scatterChart.appendChild(tooltip);
-}
 
 // ----------------------------------------
 // USA Map Generation

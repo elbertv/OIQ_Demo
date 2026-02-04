@@ -342,6 +342,7 @@ img {
     align-items: center;
     justify-content: center;
     margin-bottom: var(--spacing-sm);
+    cursor: pointer;
 }
 
 .persona-icon svg {
