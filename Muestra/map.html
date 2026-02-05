@@ -15,8 +15,9 @@
 <body>
 
     <div id="vis-container">
-        <h2>U.S. Unemployment Rate (Dummy Data)</h2>
-        </div>
+      <h2>U.S. Unemployment Rate (Dummy Data)</h2>
+      <svg id="reset-zoom" aria-label="Restaurar zoom" style="position:absolute; top:12px; right:16px; z-index:10; cursor:pointer;" fill="#FD7E14" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48px" height="48px"><path d="M 23.951172 4 A 1.50015 1.50015 0 0 0 23.072266 4.3222656 L 8.859375 15.519531 C 7.0554772 16.941163 6 19.113506 6 21.410156 L 6 40.5 C 6 41.863594 7.1364058 43 8.5 43 L 18.5 43 C 19.863594 43 21 41.863594 21 40.5 L 21 30.5 C 21 30.204955 21.204955 30 21.5 30 L 26.5 30 C 26.795045 30 27 30.204955 27 30.5 L 27 40.5 C 27 41.863594 28.136406 43 29.5 43 L 39.5 43 C 40.863594 43 42 41.863594 42 40.5 L 42 21.410156 C 42 19.113506 40.944523 16.941163 39.140625 15.519531 L 24.927734 4.3222656 A 1.50015 1.50015 0 0 0 23.951172 4 z M 24 7.4101562 L 37.285156 17.876953 C 38.369258 18.731322 39 20.030807 39 21.410156 L 39 40 L 30 40 L 30 30.5 C 30 28.585045 28.414955 27 26.5 27 L 21.5 27 C 19.585045 27 18 28.585045 18 30.5 L 18 40 L 9 40 L 9 21.410156 C 9 20.030807 9.6307412 18.731322 10.714844 17.876953 L 24 7.4101562 z"/></svg>
+      </div>
 
 <script>
 async function drawMap() {
@@ -46,25 +47,83 @@ async function drawMap() {
     .attr("viewBox", [0, 0, 975, 610])
     .style("max-width", "100%")
     .style("height", "auto");
+  // Create a dedicated map layer so we can apply zoom/transform to map content
+  const mapG = svg.append('g').attr('id', 'map-layer');
 
-  // States
-  svg.append("g")
-    .selectAll("path")
+  // Zoom behavior: will update the transform of mapG
+  const zoom = d3.zoom()
+    .scaleExtent([1, 8])
+    .on('zoom', (event) => {
+      mapG.attr('transform', event.transform);
+    });
+
+  // Apply zoom to the svg (so wheel/pan works)
+  svg.call(zoom);
+
+  // States (draw into mapG so they pan/zoom together)
+  mapG.selectAll('path')
     .data(statesGeo)
-    .join("path")
-    .attr("class", "state")
-    .attr("fill", d => color(dummyData.get(d.id)))
-    .attr("d", path)
-    .append("title")
+    .join('path')
+    .attr('class', 'state')
+    .attr('fill', d => color(dummyData.get(d.id)))
+    .attr('d', path)
+    .append('title')
     .text(d => `ID: ${d.id}\nRate: ${dummyData.get(d.id)}%`);
 
-  // Borders
-  svg.append("path")
+  // Borders (also inside mapG)
+  mapG.append('path')
     .datum(topojson.mesh(us, us.objects.states, (a, b) => a !== b))
-    .attr("fill", "none")
-    .attr("stroke", "white")
-    .attr("stroke-linejoin", "round")
-    .attr("d", path);
+    .attr('fill', 'none')
+    .attr('stroke', 'white')
+    .attr('stroke-linejoin', 'round')
+    .attr('d', path);
+
+  // Brush (selection rectangle) to define zoom area
+  const brush = d3.brush()
+    .extent([[0, 0], [975, 610]])
+    .on('start', () => {
+      // temporarily disable zoom while brushing to avoid conflicts
+      svg.on('.zoom', null);
+    })
+    .on('end', (event) => {
+      const s = event.selection;
+      // re-enable zoom after brushing
+      svg.call(zoom);
+      if (!s) return; // if no selection, do nothing
+      const [[x0, y0], [x1, y1]] = s;
+      const selW = x1 - x0;
+      const selH = y1 - y0;
+      if (selW === 0 || selH === 0) return;
+      // Account for current transform so successive zooms work correctly
+      const cur = d3.zoomTransform(svg.node());
+      // Convert selection pixels to map (untransformed) coordinates
+      const x0m = (x0 - cur.x) / cur.k;
+      const y0m = (y0 - cur.y) / cur.k;
+      const x1m = (x1 - cur.x) / cur.k;
+      const y1m = (y1 - cur.y) / cur.k;
+      const selWmap = x1m - x0m;
+      const selHmap = y1m - y0m;
+      if (selWmap === 0 || selHmap === 0) return;
+      const scale = Math.min(975 / selWmap, 610 / selHmap);
+      const translateX = -x0m * scale + (975 - selWmap * scale) / 2;
+      const translateY = -y0m * scale + (610 - selHmap * scale) / 2;
+      const t = d3.zoomIdentity.translate(translateX, translateY).scale(scale);
+      svg.transition().duration(750).call(zoom.transform, t);
+      // clear brush selection
+      svg.select('.brush').call(brush.move, null);
+    });
+
+  svg.append('g').attr('class', 'brush').call(brush);
+
+  // Double-click to reset zoom
+  svg.on('dblclick', () => {
+    svg.transition().duration(600).call(zoom.transform, d3.zoomIdentity);
+  });
+
+  // Reset button handler
+  d3.select('#reset-zoom').on('click', () => {
+    svg.transition().duration(600).call(zoom.transform, d3.zoomIdentity);
+  });
 
   // Legend
   const legend = svg.append("g").attr("transform", "translate(600, 40)");
