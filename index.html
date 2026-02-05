@@ -7,6 +7,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson@3"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -202,63 +204,69 @@
                     </div>
 
                     <div class="persona-details-grid">
-                        <!-- Persona Info Card -->
-                        <div class="persona-info-card">
-                            <h4>Persona: <span id="persona-name">Home Owners</span></h4>
-                            <p id="persona-description">Established individuals who prioritize stability and long-term financial planning. They focus on managing mortgage obligations while building equity and maintaining lifestyle needs.</p>
-                        </div>
+                        <!-- Left Column -->
+                        <div class="persona-details-column">
+                            <!-- Persona Info Card -->
+                            <div class="persona-info-card">
+                                <h4>Persona: <span id="persona-name">Home Owners</span></h4>
+                                <p id="persona-description">Established individuals who prioritize stability and long-term financial planning. They focus on managing mortgage obligations while building equity and maintaining lifestyle needs.</p>
+                            </div>
 
-                        <!-- Persona Characteristics -->
-                        <div class="characteristics-card">
-                            <h4>Persona Characteristics</h4>
-                            <div class="characteristics-list">
-                                <div class="char-item">
-                                    <span class="char-label">Population</span>
-                                    <span class="char-value" id="char-population">35,000</span>
-                                </div>
-                                <div class="char-item">
-                                    <span class="char-label">Assets</span>
-                                    <span class="char-value" id="char-assets">$200,000 - $800,000</span>
-                                </div>
-                                <div class="char-item">
-                                    <span class="char-label">Debt</span>
-                                    <span class="char-value" id="char-debt">$100,000 - $400,000</span>
-                                </div>
-                                <div class="char-item">
-                                    <span class="char-label">Debt-to-Income Ratio</span>
-                                    <span class="char-value" id="char-dti">32%</span>
-                                </div>
-                                <div class="char-item">
-                                    <span class="char-label">Credit Score</span>
-                                    <span class="char-value" id="char-credit">700 - 770</span>
-                                </div>
-                                <div class="char-item">
-                                    <span class="char-label">Age Group</span>
-                                    <span class="char-value" id="char-age">30 - 55</span>
-                                </div>
-                                <div class="char-item">
-                                    <span class="char-label">Monthly Spend</span>
-                                    <span class="char-value" id="char-spend">$5,000 - $8,000</span>
+                            <!-- Map Card -->
+                            <div class="map-card">
+                                <h4>Spend by Location</h4>
+                                <div class="usa-map" id="usa-map">
+                                    <!-- SVG Map will be inserted here -->
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Map Card -->
-                        <div class="map-card">
-                            <h4>Spend by Location</h4>
-                            <div class="usa-map" id="usa-map">
-                                <!-- SVG Map will be inserted here -->
+                        <!-- Right Column -->
+                        <div class="persona-details-column">
+                            <!-- Persona Characteristics -->
+                            <div class="characteristics-card">
+                                <h4>Persona Characteristics</h4>
+                                <div class="characteristics-list">
+                                    <div class="char-item">
+                                        <span class="char-label">Population</span>
+                                        <span class="char-value" id="char-population">35,000</span>
+                                    </div>
+                                    <div class="char-item">
+                                        <span class="char-label">Assets</span>
+                                        <span class="char-value" id="char-assets">$200,000 - $800,000</span>
+                                    </div>
+                                    <div class="char-item">
+                                        <span class="char-label">Debt</span>
+                                        <span class="char-value" id="char-debt">$100,000 - $400,000</span>
+                                    </div>
+                                    <div class="char-item">
+                                        <span class="char-label">Debt-to-Income Ratio</span>
+                                        <span class="char-value" id="char-dti">32%</span>
+                                    </div>
+                                    <div class="char-item">
+                                        <span class="char-label">Credit Score</span>
+                                        <span class="char-value" id="char-credit">700 - 770</span>
+                                    </div>
+                                    <div class="char-item">
+                                        <span class="char-label">Age Group</span>
+                                        <span class="char-value" id="char-age">30 - 55</span>
+                                    </div>
+                                    <div class="char-item">
+                                        <span class="char-label">Monthly Spend</span>
+                                        <span class="char-value" id="char-spend">$5,000 - $8,000</span>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
 
-                        <!-- Products Owned -->
-                        <div class="products-owned-card">
-                            <h4>Products Owned</h4>
-                            <div class="product-tags">
-                                <span class="product-tag">Mortgage</span>
-                                <span class="product-tag">Checking</span>
-                                <span class="product-tag">Home Insurance</span>
-                                <span class="product-tag">Credit Card</span>
+                            <!-- Products Owned -->
+                            <div class="products-owned-card">
+                                <h4>Products Owned</h4>
+                                <div class="product-tags">
+                                    <span class="product-tag">Mortgage</span>
+                                    <span class="product-tag">Checking</span>
+                                    <span class="product-tag">Home Insurance</span>
+                                    <span class="product-tag">Credit Card</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -327,6 +335,38 @@
                             </div>
                         </div>
 
+                        <!-- Scatter Chart Section -->
+                        <div class="scatter-section">
+                            <div class="scatter-chart-container" id="scatter-chart">
+                                <!-- Tooltip: aparece al lado del punto con círculo blanco centrado -->
+                                <div class="scatter-tip" id="scatter-tip" aria-hidden="true">
+                                    <div class="scatter-tip-dot"></div>
+                                    <div class="scatter-tip-inner" id="scatter-tip-value">6320</div>
+                                </div>
+
+                                <svg id="scatter-svg" role="img" aria-label="Scatter plot: Explore Persona"></svg>
+                            </div>
+
+                            <div class="scatter-legend">
+                                <span class="scatter-legend-dot"></span>
+                                <span>Home Owners</span>
+                            </div>
+
+                            <div class="scatter-footer">
+                                <div class="scatter-score">
+                                    <span>Propensity Score</span>
+                                    <strong id="propensity-value">80%</strong>
+                                </div>
+
+                                <div class="scatter-slider-wrap">
+                                    <input id="propensity-slider" class="scatter-slider" type="range" min="0" max="100" value="80" />
+                                    <div class="scatter-scale">
+                                        <span>0%</span>
+                                        <span>100%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
                     </div>
 

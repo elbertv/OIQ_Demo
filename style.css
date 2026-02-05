@@ -744,11 +744,16 @@ img {
 
 /* Persona Details Grid */
 .persona-details-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto;
+    display: flex;
     gap: var(--spacing-lg);
     margin-bottom: var(--spacing-xl);
+}
+
+.persona-details-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
 }
 
 .persona-info-card,
@@ -808,13 +813,9 @@ img {
 }
 
 /* Map Card */
-.map-card {
-    grid-row: span 2;
-}
-
 .usa-map {
     width: 100%;
-    height: 250px;
+    min-height: 180px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -823,6 +824,15 @@ img {
 .usa-map svg {
     max-width: 100%;
     max-height: 100%;
+}
+
+.usa-state {
+    transition: fill 0.2s ease;
+    cursor: pointer;
+}
+
+.usa-state:hover {
+    fill: #fd7e14 !important;
 }
 
 /* Products Owned */
@@ -861,10 +871,15 @@ img {
 }
 
 .recommended-products h4,
-.persona-chart-section h4 {
+.persona-chart-section h4,
+.scatter-section h4 {
     font-size: 1rem;
     font-weight: 600;
     margin-bottom: var(--spacing-lg);
+}
+
+.scatter-section {
+    min-height: 400px;
 }
 
 .product-list {
@@ -1253,11 +1268,7 @@ img {
     }
 
     .persona-details-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .map-card {
-        grid-row: auto;
+        flex-direction: column;
     }
 }
 
@@ -1317,6 +1328,368 @@ img {
 
 .scatter-dot:hover + .scatter-tooltip {
     opacity: 1;
+}
+
+/* ========================================
+   Scatter Chart - Explore Persona
+   ========================================
+
+   GUÍA DE PERSONALIZACIÓN:
+
+   1. TAMAÑO DE LA BURBUJA (tooltip):
+      - Ajusta .scatter-tip-inner { padding } para cambiar tamaño
+      - Ajusta .scatter-tip-inner { min-width } para ancho mínimo
+
+   2. TAMAÑO DEL TEXTO en la burbuja:
+      - Ajusta .scatter-tip-inner { font-size }
+
+   3. TAMAÑO DEL CÍRCULO BLANCO:
+      - Ajusta .scatter-tip-dot { width, height }
+
+   4. TAMAÑO DEL PUNTO NARANJA dentro del círculo:
+      - Ajusta .scatter-tip-dot::after { width, height }
+
+   5. TAMAÑO DE LA FLECHA:
+      - Ajusta .scatter-tip-inner::before { border-* }
+
+   ======================================== */
+
+.scatter-chart-container {
+    position: relative;
+    width: 100%;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.scatter-chart-container svg {
+    width: 100%;
+    height: 400px;
+    display: block;
+}
+
+/* Grid y ejes del scatter */
+.scatter-grid line {
+    stroke: rgba(17, 24, 39, 0.08);
+    shape-rendering: crispEdges;
+}
+
+.scatter-axis path,
+.scatter-axis line {
+    stroke: rgba(17, 24, 39, 0.25);
+    shape-rendering: crispEdges;
+}
+
+.scatter-axis text {
+    fill: var(--text-secondary);
+    font-size: 12px;
+}
+
+/* Puntos naranjas del scatter */
+.scatter-point {
+    fill: var(--accent-orange);
+    opacity: 0.95;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+.scatter-point:hover {
+    opacity: 1;
+}
+
+/* Línea punteada (threshold) */
+.scatter-threshold {
+    stroke: var(--primary-blue);
+    stroke-width: 3;
+    stroke-dasharray: 8 8;
+    opacity: 0.9;
+}
+
+.scatter-threshold-label {
+    font-size: 12px;
+    fill: var(--primary-blue);
+    font-weight: 700;
+}
+
+/* ----------------------------------------
+   TOOLTIP/BURBUJA del Scatter
+
+   AJUSTES PRINCIPALES:
+   - Para hacer la burbuja más grande/pequeña:
+     modifica padding y min-width en .scatter-tip-inner
+   - Para cambiar tamaño del texto:
+     modifica font-size en .scatter-tip-inner
+---------------------------------------- */
+
+.scatter-tip {
+    position: absolute;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.1s ease;
+    /* Centra verticalmente respecto al punto */
+    transform: translateY(-50%);
+    z-index: 10;
+}
+
+/* ============================================
+   AJUSTE: POSICIÓN CUANDO SE VOLTEA A LA IZQUIERDA
+   Cuando el punto está cerca del borde derecho (20% por defecto),
+   la burbuja aparece a la izquierda del punto.
+   El transform mueve todo el tooltip para que su borde derecho
+   quede alineado con la posición del punto.
+   ============================================ */
+.scatter-tip.flip-left {
+    transform: translate(-100%, -50%);
+}
+
+.scatter-tip-inner {
+    position: relative;
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+
+    /* ============================================
+       AJUSTE: TAMAÑO DEL TEXTO
+       Cambia este valor para texto más grande/pequeño
+       ============================================ */
+    font-size: 28px;
+
+    font-weight: 800;
+    color: var(--gray-700);
+
+    /* ============================================
+       AJUSTE: TAMAÑO DE LA BURBUJA
+       - padding: más padding = burbuja más grande
+       - min-width: ancho mínimo de la burbuja
+       ============================================ */
+    padding: 14px 18px;
+    min-width: 140px;
+
+    text-align: center;
+    line-height: 1;
+}
+
+/* Flecha que apunta hacia el punto (izquierda por defecto) */
+.scatter-tip-inner::before {
+    content: "";
+    position: absolute;
+    left: -10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+
+    /* ============================================
+       AJUSTE: TAMAÑO DE LA FLECHA
+       Modifica border-top/bottom/right para cambiar tamaño
+       ============================================ */
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 10px solid var(--white);
+
+    filter: drop-shadow(-2px 2px 1px rgba(0, 0, 0, 0.08));
+}
+
+/* Flecha apuntando a la derecha (cuando tooltip está a la izquierda del punto) */
+.scatter-tip.flip-left .scatter-tip-inner::before {
+    left: auto;
+    right: -10px;
+    border-right: none;
+    border-left: 10px solid var(--white);
+    filter: drop-shadow(2px 2px 1px rgba(0, 0, 0, 0.08));
+}
+
+/* ----------------------------------------
+   CÍRCULO BLANCO con punto naranja
+
+   El centro del círculo siempre coincide
+   con el centro del punto naranja del gráfico
+---------------------------------------- */
+
+.scatter-tip-dot {
+    position: absolute;
+    left: -52px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--white);
+    border-radius: 50%;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+
+    /* ============================================
+       AJUSTE: TAMAÑO DEL CÍRCULO BLANCO
+       Cambia width y height para hacerlo más grande/pequeño
+       ============================================ */
+    width: 64px;
+    height: 64px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Cuando el tooltip está a la izquierda del punto */
+.scatter-tip.flip-left .scatter-tip-dot {
+    left: auto;
+    right: -52px;
+}
+
+.scatter-tip-dot::after {
+    content: "";
+    border-radius: 50%;
+    background: var(--accent-orange);
+
+    /* ============================================
+       AJUSTE: TAMAÑO DEL PUNTO NARANJA INTERIOR
+       Cambia width y height del punto dentro del círculo
+       ============================================ */
+    width: 20px;
+    height: 20px;
+}
+
+/* Legend del scatter */
+.scatter-legend {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 12px 0 0 6px;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.scatter-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent-orange);
+}
+
+/* Propensity Score en el scatter */
+.scatter-footer {
+    padding: 16px 0;
+    display: grid;
+    grid-template-columns: 190px 1fr;
+    gap: 14px;
+    align-items: center;
+}
+
+.scatter-score {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.scatter-score strong {
+    color: var(--accent-green);
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.scatter-slider {
+    width: 100%;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: linear-gradient(to right, var(--accent-green) 0%, var(--accent-green) 80%, var(--gray-300) 80%, var(--gray-300) 100%);
+    border-radius: 999px;
+    outline: none;
+}
+
+.scatter-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+    cursor: pointer;
+    border: 0;
+}
+
+.scatter-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+    cursor: pointer;
+    border: 0;
+}
+
+.scatter-scale {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 6px;
+    padding: 0 2px;
+}
+
+/* Responsive para scatter */
+@media (max-width: 768px) {
+    .scatter-footer {
+        grid-template-columns: 1fr;
+    }
+
+    .scatter-tip-inner {
+        font-size: 22px;
+        min-width: 120px;
+        padding: 12px 14px;
+    }
+
+    .scatter-tip-dot {
+        width: 52px;
+        height: 52px;
+        left: -44px;
+    }
+
+    .scatter-tip.flip-left .scatter-tip-dot {
+        right: -44px;
+    }
+
+    .scatter-tip-dot::after {
+        width: 16px;
+        height: 16px;
+    }
+}
+
+/* ----------------------------------------
+   Download Dropdown
+---------------------------------------- */
+.download-dropdown {
+    background: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+    min-width: 160px;
+    overflow: hidden;
+}
+
+.download-option {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: none;
+    border: none;
+    text-align: left;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background var(--transition-fast);
+}
+
+.download-option:hover {
+    background: var(--gray-50);
+}
+
+.download-option svg {
+    color: var(--text-secondary);
 }
 
 /* ----------------------------------------

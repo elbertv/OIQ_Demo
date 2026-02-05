@@ -26,7 +26,7 @@ async function drawMap() {
   // Dummy data
   const dummyData = new Map();
   statesGeo.forEach(s => {
-    const randomRate = 6//(Math.random() * (12 - 2) + 2).toFixed(1);
+    const randomRate =(Math.random() * (12 - 2) + 2).toFixed(1);
     dummyData.set(s.id, +randomRate);
   });
 

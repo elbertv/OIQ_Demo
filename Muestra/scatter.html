@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>D3 Scatter (Explore Persona)</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#f3f4f6;
+      --card:#ffffff;
+      --text:#111827;
+      --muted:#6b7280;
+      --grid:rgba(17,24,39,.08);
+      --axis:rgba(17,24,39,.25);
+      --accent:#f97316;   /* naranja dots */
+      --dash:#2563eb;     /* azul línea punteada */
+      --shadow:0 12px 22px rgba(0,0,0,.12);
+      --radius:14px;
+
+      --track:#d1d5db;    /* gris track del slider */
+      --green:#16a34a;
+    }
+
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background:var(--bg);
+      color:var(--text);
+    }
+
+    .wrap{ max-width:1100px; margin:28px auto; padding:0 16px; }
+    .card{
+      background:var(--card);
+      border-radius:var(--radius);
+      box-shadow:0 18px 40px rgba(0,0,0,.10);
+      padding:18px 18px 14px 18px;
+    }
+
+    .title{ font-size:18px; font-weight:600; margin:6px 0 10px 2px; }
+    .chart-area{ position:relative; border-radius:12px; overflow:hidden; }
+    svg{ width:100%; height:460px; display:block; }
+
+    .grid line{ stroke:var(--grid); shape-rendering: crispEdges; }
+    .axis path, .axis line{ stroke:var(--axis); shape-rendering: crispEdges; }
+    .axis text{ fill:var(--muted); font-size:12px; }
+
+    .dot{ fill:var(--accent); opacity:.95; }
+    .dot:hover{ cursor:pointer; opacity:1; }
+
+    .threshold{ stroke:var(--dash); stroke-width:3; stroke-dasharray:8 8; opacity:.9; }
+    .threshold-label{ font-size:12px; fill:var(--dash); font-weight:700; }
+
+    .legend{
+      display:flex; align-items:center; gap:10px;
+      margin:10px 0 0 6px; color:var(--muted); font-size:12px; user-select:none;
+    }
+    .legend-dot{ width:10px; height:10px; border-radius:999px; background:var(--accent); }
+
+    /* =========================================================
+       Tooltip/Burbuja (NORMAL, no gigante)
+       ---------------------------------------------------------
+       Ajustes típicos:
+         - Tamaño del texto:      .tip-inner { font-size: ... }
+         - Tamaño de la burbuja:  .tip-inner { padding / min-width }
+         - Tamaño del círculo:    .tip-dot { width/height } y ::after
+         - Tamaño de la flecha:   .tip-inner::before { border-... }
+       ========================================================= */
+
+    .tip{
+      position:absolute;
+      pointer-events:none;  /* en hover no “bloquea” el mouse */
+      opacity:0;
+      transition: opacity .08s linear;
+      transform: translate(0, -50%); /* centra verticalmente respecto al punto */
+      z-index: 10;
+    }
+
+    .tip-inner{
+      position:relative;
+      background:#fff;
+      border-radius:12px;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(0,0,0,.06);
+
+      /* Ajuste principal: tamaño “normal” */
+      font-size: 28px;      /* <- tamaño del VALOR (texto) */
+      font-weight: 800;
+      color:#3f3f46;
+
+      /* Ajuste principal: tamaño de la burbuja */
+      padding: 14px 18px;   /* <- más padding = burbuja más grande */
+      min-width: 160px;     /* <- ancho mínimo de la burbuja */
+      text-align:center;
+      line-height: 1;
+    }
+
+    /* flecha que apunta al punto */
+    .tip-inner::before{
+      content:"";
+      position:absolute;
+      left:-10px;
+      top:50%;
+      transform: translateY(-50%);
+      width:0; height:0;
+
+      /* Ajuste: tamaño de la flecha */
+      border-top:8px solid transparent;
+      border-bottom:8px solid transparent;
+      border-right:10px solid #fff;
+      filter: drop-shadow(-2px 2px 1px rgba(0,0,0,.08));
+    }
+
+    /* circulo blanco con punto naranja (lado izquierdo) */
+    .tip-dot{
+      position:absolute;
+      left:-52px;
+      top:50%;
+      transform: translateY(-50%);
+      background:#fff;
+      border-radius:999px;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(0,0,0,.06);
+
+      /* Ajuste: tamaño del circulo blanco */
+      width: 64px;
+      height: 64px;
+
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .tip-dot::after{
+      content:"";
+      border-radius:999px;
+      background: var(--accent);
+
+      /* Ajuste: tamaño del punto naranja dentro del círculo */
+      width: 20px;
+      height: 20px;
+    }
+
+    .footer{
+      padding: 16px 10px 10px 10px;
+      display:grid;
+      grid-template-columns: 190px 1fr;
+      gap: 14px;
+      align-items:center;
+    }
+
+    .score{
+      display:flex; align-items: baseline; gap:10px;
+      font-size:13px; color:var(--muted); white-space:nowrap;
+    }
+    .score strong{ color:var(--green); font-size:20px; font-weight:800; }
+
+    /* Slider: track gris, relleno verde hasta 80% (fijo) */
+    .range{
+      width:100%;
+      height: 4px;
+      -webkit-appearance:none;
+      appearance:none;
+      background: linear-gradient(to right, var(--green) 0%, var(--green) 80%, var(--track) 80%, var(--track) 100%);
+      border-radius:999px;
+      outline:none;
+    }
+    .range::-webkit-slider-thumb{
+      -webkit-appearance:none;
+      width:14px; height:14px; border-radius:999px;
+      background: var(--green);
+      box-shadow: 0 4px 10px rgba(0,0,0,.18);
+      cursor: pointer;
+      border:0;
+    }
+    .range::-moz-range-thumb{
+      width:14px; height:14px; border-radius:999px;
+      background: var(--green);
+      box-shadow: 0 4px 10px rgba(0,0,0,.18);
+      cursor: pointer;
+      border:0;
+    }
+    .scale{
+      display:flex; justify-content: space-between;
+      font-size: 11px; color: var(--muted);
+      margin-top: 6px; padding: 0 2px;
+    }
+
+    @media (max-width: 760px){
+      .footer{ grid-template-columns: 1fr; }
+      .tip-inner{ font-size:22px; min-width:130px; padding: 12px 14px; }
+      .tip-dot{ width:56px; height:56px; left:-46px; }
+      .tip-dot::after{ width:18px; height:18px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="title">Explore Persona</div>
+
+      <div class="chart-area" id="chart">
+        <!-- Tooltip: aparece al lado del punto; no agranda el punto -->
+        <div class="tip" id="tip" aria-hidden="true">
+          <div class="tip-dot"></div>
+          <div class="tip-inner" id="tipValue">6320</div>
+        </div>
+
+        <svg id="svg" role="img" aria-label="Scatter plot: Explore Persona"></svg>
+      </div>
+
+      <div class="legend">
+        <span class="legend-dot"></span>
+        <span>Home Owners</span>
+      </div>
+
+      <div class="footer">
+        <div class="score">
+          <span>Propensity Score</span>
+          <strong id="scoreValue">80%</strong>
+        </div>
+
+        <div class="slider-wrap">
+          <input id="scoreSlider" class="range" type="range" min="0" max="100" value="80" />
+          <div class="scale"><span>0%</span><span>100%</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================
+    // Config general del chart
+    // =========================================================
+    const cfg = {
+      n: 40,
+      xDomain: [-6, 7],
+      yDomain: [-2, 2],
+      thresholdY: -0.4,
+
+      // Radio del punto (NO se cambia al hover, como pediste)
+      pointRadius: 6,
+
+      // Corrimiento a la izquierda del label azul "-0.4"
+      thresholdLabelShiftX: -32,
+
+      // Separación de la burbuja respecto al punto
+      // (más grande = burbuja más lejos)
+      tooltipOffsetX: 18,
+
+      margin: { top: 18, right: 24, bottom: 42, left: 54 }
+    };
+
+    // =========================================================
+    // Random determinístico (para que el patrón sea estable al recargar)
+    // =========================================================
+    function lcg(seed=1234567){
+      let s = seed >>> 0;
+      return () => (s = (1664525 * s + 1013904223) >>> 0) / 2**32;
+    }
+    const rand = lcg(20260204);
+
+    // =========================================================
+    // Generación de datos dummy
+    // - id: es el valor que se mostrará en la burbuja (solo valor)
+    // =========================================================
+    function genData(n){
+      const data = [];
+      for (let i = 0; i < n; i++){
+        const x = cfg.xDomain[0] + (cfg.xDomain[1] - cfg.xDomain[0]) * rand();
+        const trend = (x - cfg.xDomain[0]) / (cfg.xDomain[1] - cfg.xDomain[0]);
+        let y = -1.2 + 2.6 * trend + (rand() - 0.5) * 0.9;
+        y = Math.max(cfg.yDomain[0], Math.min(cfg.yDomain[1], y));
+
+        const value = String(1000 + Math.floor(rand() * 9000));
+        data.push({ id: value, x: +x.toFixed(2), y: +y.toFixed(2) });
+      }
+      return data;
+    }
+    const data = genData(cfg.n);
+
+    // =========================================================
+    // Tooltip: hover muestra / click fija / click afuera libera
+    // =========================================================
+    const chartEl = document.getElementById("chart");
+    const tipEl = document.getElementById("tip");
+    const tipValueEl = document.getElementById("tipValue");
+
+    let pinned = false;       // true => tooltip queda fijo
+    let pinnedDatum = null;   // dato que quedó fijo
+
+    /**
+     * Calcula coordenadas dentro del contenedor del chart.
+     */
+    function getLocalXY(event){
+      const rect = chartEl.getBoundingClientRect();
+      return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      };
+    }
+
+    /**
+     * Muestra la burbuja en una posición (x,y) dentro del contenedor.
+     * - value: SOLO el valor (sin tags / sin "x:" / sin "y:")
+     */
+    function showTipAt(x, y, value){
+      tipValueEl.textContent = value;
+      tipEl.style.left = x + "px";
+      tipEl.style.top = y + "px";
+      tipEl.style.opacity = 1;
+      tipEl.setAttribute("aria-hidden", "false");
+    }
+
+    /**
+     * Oculta la burbuja si no está fijada.
+     */
+    function hideTip(){
+      if (pinned) return;
+      tipEl.style.opacity = 0;
+      tipEl.setAttribute("aria-hidden", "true");
+    }
+
+    // =========================================================
+    // D3: render
+    // =========================================================
+    const svg = d3.select("#svg");
+
+    function draw(){
+      svg.selectAll("*").remove();
+
+      const width = chartEl.clientWidth;
+      const height = 460;
+      svg.attr("viewBox", `0 0 ${width} ${height}`);
+
+      const innerW = width - cfg.margin.left - cfg.margin.right;
+      const innerH = height - cfg.margin.top - cfg.margin.bottom;
+
+      const g = svg.append("g")
+        .attr("transform", `translate(${cfg.margin.left},${cfg.margin.top})`);
+
+      const x = d3.scaleLinear().domain(cfg.xDomain).range([0, innerW]);
+      const y = d3.scaleLinear().domain(cfg.yDomain).range([innerH, 0]);
+
+      // Grid
+      g.append("g")
+        .attr("class","grid")
+        .call(d3.axisLeft(y).ticks(6).tickSize(-innerW).tickFormat(""))
+        .call(s => s.select(".domain").remove());
+
+      g.append("g")
+        .attr("class","grid")
+        .attr("transform", `translate(0,${innerH})`)
+        .call(d3.axisBottom(x).ticks(10).tickSize(-innerH).tickFormat(""))
+        .call(s => s.select(".domain").remove());
+
+      // Axes
+      g.append("g").attr("class","axis").call(d3.axisLeft(y).ticks(6));
+      g.append("g").attr("class","axis").attr("transform", `translate(0,${innerH})`).call(d3.axisBottom(x).ticks(10));
+
+      // Línea punteada (threshold)
+      const yT = y(cfg.thresholdY);
+      g.append("line")
+        .attr("class","threshold")
+        .attr("x1", 0).attr("x2", innerW)
+        .attr("y1", yT).attr("y2", yT);
+
+      // Label del threshold corrido a la izquierda
+      g.append("text")
+        .attr("class","threshold-label")
+        .attr("x", cfg.thresholdLabelShiftX)
+        .attr("y", yT)
+        .attr("dy", "0.35em")
+        .attr("text-anchor","end")
+        .text(cfg.thresholdY.toFixed(1));
+
+      // Dots
+      const dots = g.append("g")
+        .selectAll("circle")
+        .data(data, d => d.id)
+        .join("circle")
+        .attr("class","dot")
+        .attr("r", cfg.pointRadius)        // <- NO se cambia en hover
+        .attr("cx", d => x(d.x))
+        .attr("cy", d => y(d.y));
+
+      // ---------------------------------------------------------
+      // Hover: muestra burbuja al lado del punto (sin agrandar el dot)
+      // Click: fija burbuja
+      // ---------------------------------------------------------
+      dots
+        .on("mouseenter", (event, d) => {
+          if (pinned) return; // si ya está fijo, no lo cambiamos en hover
+          // Posición en SVG (relativa al grupo) -> la convertimos a coordenadas del contenedor
+          const px = cfg.margin.left + x(d.x) + cfg.tooltipOffsetX;
+          const py = cfg.margin.top + y(d.y);
+          showTipAt(px, py, d.id);
+        })
+        .on("mousemove", (event, d) => {
+          if (pinned) return;
+          // Recalcular con el dato para que quede siempre “pegado” al punto
+          const px = cfg.margin.left + x(d.x) + cfg.tooltipOffsetX;
+          const py = cfg.margin.top + y(d.y);
+          showTipAt(px, py, d.id);
+        })
+        .on("mouseleave", () => hideTip())
+        .on("click", (event, d) => {
+          event.stopPropagation();
+          pinned = true;
+          pinnedDatum = d;
+
+          const px = cfg.margin.left + x(d.x) + cfg.tooltipOffsetX;
+          const py = cfg.margin.top + y(d.y);
+          showTipAt(px, py, d.id);
+        });
+
+      // Click afuera: “desfija” la burbuja
+      d3.select(chartEl).on("click", () => {
+        pinned = false;
+        pinnedDatum = null;
+        tipEl.style.opacity = 0;
+        tipEl.setAttribute("aria-hidden", "true");
+      });
+
+      // Si se redimensiona y el tooltip estaba fijado, lo recolocamos
+      if (pinned && pinnedDatum){
+        const px = cfg.margin.left + x(pinnedDatum.x) + cfg.tooltipOffsetX;
+        const py = cfg.margin.top + y(pinnedDatum.y);
+        showTipAt(px, py, pinnedDatum.id);
+      }
+    }
+
+    draw();
+    window.addEventListener("resize", () => draw(), { passive:true });
+
+    // =========================================================
+    // Slider fijo a 80% (como pediste)
+    // =========================================================
+    const slider = document.getElementById("scoreSlider");
+    slider.addEventListener("input", () => { slider.value = 80; });
+  </script>
+</body>
+</html>
