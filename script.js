@@ -585,6 +585,22 @@ function populatePopulationTable() {
 /**
  * Hides the state comparison panel and restores the USA panel to full width.
  */
+function hideStateComparison() {
+    if (comparisonWrapper) {
+        comparisonWrapper.classList.remove('active');
+        // Wait for the transition to finish before hiding it completely
+        setTimeout(() => {
+            if (!comparisonWrapper.classList.contains('active')) { // Ensure it's still inactive before hiding
+                 stateCharCard.classList.add('hidden');
+            }
+        }, 300); // 300ms matches the CSS transition duration
+    }
+}
+
+/**
+ * Shows the state comparison panel, populates it with data, and shrinks the USA panel.
+ * @param {object} stateGeoData - The properties object from the D3 geo data.
+ */
 function showStateComparison(stateGeoData) {
     if (!comparisonWrapper || !stateCharCard) return;
 
