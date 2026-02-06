@@ -77,10 +77,64 @@ const campaignData = [
 ];
 
 // ----------------------------------------
+// State-level Data Simulation
+// ----------------------------------------
+const stateDataFactors = {};
+function createStateDataFactors(seed) {
+    const rand = scatterLcg(seed);
+    for (let i = 1; i <= 56; i++) {
+        const id = i.toString().padStart(2, '0');
+        stateDataFactors[id] = {
+            population: 0.5 + rand() * 1.5,
+            assets: 0.8 + rand() * 0.4,
+            debt: 0.7 + rand() * 0.6,
+            dti: 0.9 + rand() * 0.2,
+            credit: 0.95 + rand() * 0.1,
+        };
+    }
+}
+createStateDataFactors(20260206); // Seed with a fixed date for consistency
+
+function generateStateCharData(baseChars, stateId) {
+    const factors = stateDataFactors[stateId] || { population: 1, assets: 1, debt: 1, dti: 1, credit: 1 };
+
+    const cleanAndMultiply = (val, factor) => {
+        if (typeof val !== 'string') return '';
+        const numericVal = parseFloat(val.replace(/[^0-9.-]+/g,""));
+        if (isNaN(numericVal)) return val;
+        return (numericVal * factor).toLocaleString('en-US', { maximumFractionDigits: 0 });
+    };
+
+    const cleanAndMultiplyRange = (rangeStr, factor) => {
+        if (typeof rangeStr !== 'string') return '';
+        const parts = rangeStr.split('-').map(s => s.trim());
+        if (parts.length !== 2) return rangeStr;
+        const low = parseFloat(parts[0].replace(/[^0-9.-]+/g,""));
+        const high = parseFloat(parts[1].replace(/[^0-9.-]+/g,""));
+        if (isNaN(low) || isNaN(high)) return rangeStr;
+
+        const format = (num) => {
+            return num.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+        }
+        return `${format(low * factor)} - ${format(high * factor)}`;
+    };
+
+    return {
+        population: cleanAndMultiply(baseChars.population, factors.population),
+        assets: cleanAndMultiplyRange(baseChars.assets, factors.assets),
+        debt: cleanAndMultiplyRange(baseChars.debt, factors.debt),
+        dti: `${Math.round(parseFloat(baseChars.dti) * factors.dti)}%`,
+        credit: baseChars.credit, // Keep credit score and age group same as national
+        age: baseChars.age,
+        spend: cleanAndMultiplyRange(baseChars.spend, factors.population * factors.dti) // spend is related to pop and dti
+    };
+}
+
+
+// ----------------------------------------
 // Extended Population Data (for pagination)
 // ----------------------------------------
-const firstNames = ['Alice', 'Brian', 'Carla', 'David', 'Emma', 'Frank', 'Grace', 'Henry', 'Isabel', 'Jack', 'Karen', 'Luis', 'Maria', 'Nathan', 'Olivia', 'Patrick', 'Quinn', 'Rachel', 'Samuel', 'Tina', 'Victor', 'Wendy', 'Xavier', 'Yolanda', 'Zachary', 'Angela', 'Benjamin', 'Christina', 'Daniel', 'Elena', 'Fernando', 'Gloria', 'Howard', 'Irene', 'James', 'Katherine', 'Leonard', 'Michelle', 'Nicholas', 'Patricia', 'Robert', 'Sandra', 'Thomas', 'Ursula', 'Vincent', 'William', 'Ximena', 'Yvonne', 'Albert', 'Barbara'];
-const lastNames = ['Johnson', 'Smith', 'Gomez', 'Lee', 'Brown', 'Wilson', 'Miller', 'Davis', 'Clark', 'Thompson', 'Garcia', 'Martinez', 'Rodriguez', 'Lopez', 'Hernandez', 'Moore', 'Taylor', 'Anderson', 'Thomas', 'Jackson', 'White', 'Harris', 'Martin', 'Robinson', 'Lewis', 'Walker', 'Young', 'King', 'Wright', 'Scott', 'Green', 'Baker', 'Adams', 'Nelson', 'Hill', 'Ramirez', 'Campbell', 'Mitchell', 'Roberts', 'Carter', 'Phillips', 'Evans', 'Turner', 'Torres', 'Parker', 'Collins', 'Edwards', 'Stewart', 'Flores', 'Morris'];
+const fullNames = ["Phil Jedrasik", "Stephani Feuell", "Doyle Flack", "Brenden Orrell", "Dru Bathersby", "Papagena Maillard", "Antoine Argontt", "Tabitha Morrilly", "Harriott Liffey", "Lizabeth Ballston", "Saloma Bellon", "Jody Whaley", "Kennith Sherrum", "Rex Dunguy", "Kelly Woodhead", "Leonanie Hebden", "Chantalle Nana", "Walden Delatour", "Rosalia Mobbs", "Darelle Gethouse", "Ingemar Dominik", "Fleur Rosendale", "Jayme Aberdalgy", "Anastassia Bristowe", "Maryrose Riseborough", "Dagny Else", "Terrell Blasl", "Smitty Branchflower", "Allissa Fearnyhough", "Cordi Ghelerdini", "Perry Linfitt", "Guenna Wolfindale", "Jacquetta Kleuer", "Cullie Lias", "Codee McCurtain", "Ginger Edel", "Rebe Schultz", "Auroora Welburn", "Vanny Lewinton", "Akim Lehrer", "Ralina Moreside", "Colan Seldon", "Leopold Uttridge", "Zola Tulley", "Eveline Cornall", "Albie Adamiak", "Prentice Jeckell", "Brigg Covely", "Elsinore Willoughley", "Myrna Volage", "Noreen McVey", "Clevey Coen", "Demetre Abramof", "Fredra Oldfield-Cherry", "Morey Ebbers", "Grace Scardifeild", "Muire Cheeseman", "Annaliese Grayshan", "Goldia Deroche", "Baudoin O'Doran", "Vic Cescot", "Babita Van der Hoeven", "Dell Oxenden", "Jeanie Blampied", "Philly Joliffe", "Marlowe Rowbottam", "Tonya Heinecke", "Iain Local", "Riobard Grabeham", "Sloan Bambra", "Ceil Rispine", "Mollee Varnes", "Jerrilyn Scarre", "Merrick Bouch", "Ramon Fido", "Nico Muddicliffe", "Shepperd Glass", "Darrel Greenley", "Inness Fryer", "Jami Glasard", "Vachel Tunnow", "Bria Graundisson", "Cathyleen Weller", "Garey Edghinn", "Darla Standish", "Elizabet Lanchbery", "Nadeen Scurlock", "Arnuad Geroldo", "Marcelle Osgood", "Helli Masi", "Fletcher Hallford", "Perry Bowell", "Hobart Peile", "Portia Brocklesby", "Giorgio Ferroli", "Cirilo Saunton", "Leonard Usborn", "Wolfie Coxwell", "Rania Onthank", "Kareem Kieran", "Therese Swindlehurst", "Euell Cargen", "Rhodie Maryon", "Georgetta Agastina", "Sky Iddiens", "Wakefield Cocker", "Keslie Caesar", "Darrin Sowden", "Teddy Conew", "Brandice Coot", "Linnell Barstowk", "Karlen Matuschek", "Phyllis Gonoude", "Shantee Sharpus", "Marwin Landrick", "Laird Arkcoll", "Gustave Nuth", "Melisse Glozman", "Thayne Rosenwasser", "Lindsey Tertre", "Sorcha Kaasmann", "Jennine Denson", "Edy Normanvill", "Binky Boodell", "Meg Brokenshaw", "Latisha Streets", "Gerhardine Vine", "Norbie Kennerknecht", "Alys Edgehill", "Karin Teasey", "Maximilian Fugere", "Galina Giottini", "Brendan Bussy", "Erin Nisuis", "Jaymee Janman", "Hasty Ivashnikov", "Rafaelita Doget", "Emlynn Bastick", "Willy Bavidge", "Jojo Pautard", "Ced Luxon", "Janet Facey", "Avivah Hughlock", "Bryant Puig", "Baudoin Janusik", "Dorotea Asher", "Guillemette Coase", "Nadean Drynan", "Jami Worsom", "Jacky Farries", "Farica Bohan", "Onida Crannell", "Feodor Danilov", "Herby Saywood", "Gerianne Solon", "Chantal Lenthall", "Luce Ferraron", "Teri Fellis", "Geoffrey Dahlman", "Dorree Besnard", "Yves Balaisot", "Jeremias O'Cridigan", "Jacquette Upcraft", "Nancy Cheson", "Joni Bigland", "Carson Burril", "Dalis Skryne", "Rosanna Linsey", "Chester Castell", "Alfonso Gronaver", "Anselm Hiddersley", "Marleah Royste", "Jennilee Winchurst", "Zacharie Leile", "Jorry Lack", "Andy Rickardsson", "Byran Bellee", "Karney Immins", "Debbi Zink", "Marley Draycott", "Rey Gokes", "Rusty Ollerearnshaw", "Maggee Derisly", "Franchot Montrose", "Marion Ethridge", "Noelani Sunners", "Cortney Gadie", "Kleon Edison", "Benoite Franken", "Lorianna Blincko", "Mikaela Cuttin", "Thekla Mendonca", "Reggie Thunder", "Teresa Cowton", "Darb Dunk", "Iver Serck", "Codee Ritelli", "Ardra Packman", "Lynett Oguz", "Lori Bardill", "Jordon Lannon", "Libbey Sumnall", "Bronson Corday", "Denney Goulstone", "Adora Petrenko", "Julius Wink", "Bobbee Bellay", "Fabien McCuaig", "Piper Soltan", "Celeste Kerswill", "Elaina Kemball", "Ivar McAlindon", "Esther Getch", "Britteny Kimmings", "Debera Rosekilly", "Joella Keune", "Greta Cash", "Edgardo Stainburn", "Ricoriki Gifkins", "Roseanna Coltherd", "Julianne Brade", "Leonerd Thynne", "John Espinola", "Flori Kidstoun", "Florentia Dulinty", "Quinta Regelous", "Andres Custed", "Winifred Terbeek", "Richmound Hearne", "Ramon Arrington", "Ruperta Stollsteiner", "Isa Josefs", "Clemens Millhouse", "Briny Hearns", "Reinhard Garie", "Jacquetta Bottomore", "Lucretia Hasnney", "Gib Manilo", "Enriqueta Sotworth", "Gustav Lavers", "Roarke Czajka", "Avrit Petrello", "Sayres Gooley", "Hall Shakesby", "Ara Chubb", "Myriam Hubery", "Tracie Cowdrey", "Cecelia Rein", "Moreen Playhill", "Bethina Roloff", "Mahalia Iveans", "Martie Dursley", "Llewellyn Rigby", "Moshe Robrow", "Ilysa Vasiliu", "Erastus Stark", "Nanine Gotliffe", "Neill Wykes", "Betti O'Gleasane", "Georgeanna Gumm", "Yul Mackerel", "Katine Turfus", "Anatola Hamelyn", "Arleta Luetkemeyers", "Suki Winckles", "Karola Espinet", "Benny Comoletti", "Eduino Gatland", "Aldus Stollenhof", "Anya Cadden", "Danyelle Gallaher", "Anna-maria Lucken", "Cristen Gitting", "Adolf Bleakley", "Kin Juden", "Darcy Cobson", "Alie Carles", "Maurise Maybey", "Archie Clissold", "Erma Waggitt", "Meryl Stranieri", "Erek Gulland", "Dottie Grigg", "Claire Hawkwood", "Gusti Heake", "Leeann Corwin", "Wright Dallan", "Tisha Courtliff", "Karon Grigoire", "Donny Cheesworth", "Carine Summerill", "Corrinne Johnstone", "Tildie McMoyer", "Ansell Mitchiner", "Regine Lamas", "Bronson Feaviour", "Theodor Trattles", "Britta Schott", "Cazzie Bennedick", "Dode Hulburd", "Mignon Clymo", "Lodovico Ashford", "Luce Kermannes", "Jolene Taplin", "Olive Soall", "Hedwiga MacConnechie", "Kimball Rupel", "Nels Covert", "Marianne Southcott", "Pail Crampsey", "Thomasine Murkin", "Ashia Bernt", "Dolli Perkins", "Pamella Hedworth", "Reinold Harlick", "Theresina Moodycliffe", "Meryl Harber", "Allie Whorlow", "Fulton Brounsell", "Meryl Elletson", "Fannie Nanetti", "Pall Lucks", "Adele Clearie", "Maryjane Bertwistle", "Arron Tittletross", "Abagail Derrell", "Elayne Axelbey", "Wenda O'Dowling", "Ollie Rives", "Brook Scapens", "Neel Lorenz", "Adi Pickerin", "Gwen Sansam", "Broddie Morgue", "Nicoli Caton", "Trula Wroe", "Baxter Dewdeny", "Chrysler Costock", "Elsworth Bowery", "Reube Boswell", "Theresita Izakof", "Wildon Rosekilly", "Worthy Fritche", "Abba Westoll", "Ronnica Punchard", "Felipa Kernar", "Roley Gergler", "Walliw Caddock", "Nannie Ackers", "Natalee Thornham", "Tomasina Zelley", "Netti Cersey", "Yolanthe Hurdiss", "Kerr Gostall", "Wye Tesmond", "Renato Duddan", "Milissent Bevens", "Rori Rubinow", "Dasha Krates", "Shurwood Messum", "Ezri Fronczak", "Cris Paviour", "Nadean Palfery", "Julissa Mityakov", "Bettina Janik", "Marketa Feron", "Tedda Fisbburne", "Giselbert Yeabsley", "Charissa Zotto", "Frances Beck", "Nance Hazeman", "Odella Aldin", "Gardie Arnefield", "Gilly Primak", "Mariam Shimmings", "Tamra Gercken", "Charlean Price", "Lana Worstall", "Trista Warsap", "Sanderson Dirand", "Van Leadbeater", "Wakefield Rudinger", "Harmonie MacCarlich", "Jase Pogson", "Wynnie Ficken", "Garv Scipsey", "Trescha Knaggs", "Lettie Bugge", "Marys Micah", "Valentine Dauncey", "Tammy Callaby", "Slade Rainsdon", "Kingsly Honisch", "Veronike Preto", "Bern Belsey", "Shadow Tather", "Roselia Robic", "Kizzie Jumont", "Tova Dingwall", "Nike Fessier", "Cornie de Keyser", "Brewer Cornbill", "Corabella Horbath", "Stanislaus Beatty", "Stephen Ullrich", "Pat Caddie", "Ivette Lannin", "Thomasina Gadault", "Harmonie Dranfield", "Stevie Darell", "Callida Hammatt", "Cinda Ambrozik", "Baxie Meachen", "Malcolm MacKeever", "Darby Di Batista", "Stormie Culpin", "Penrod Freire", "Addison McComas", "Haze Oolahan", "Coop Channer", "Ettore Portwaine", "Arda McEwen", "Bradan Yitzhak", "Reed Jenney", "Arley Schoroder", "Vanny Cosens", "Farrel Waterhous", "Callean Gander", "Jillayne Kulic", "Albert Mundall", "Wilton Tarr", "Whittaker Wroughton", "Wylie Pegrum", "Sandi Foxwell", "Kassi Paszek", "Ezekiel Callaway", "Merv Mustoo", "Maureen Dutteridge", "Dar Hoggins", "Gerty Marjoribanks", "Pepi Govinlock", "Perry Frazier", "Ragnar Olliar", "Heda Parlot", "Allina Gilbride", "Olag Frid", "Rosco Kepe", "Roseanne Glencorse", "Emmalee Belfelt", "Tracie Dumphries", "Dollie Cushe", "Imelda Roantree", "Alyse Shingles", "Dom Hallt", "Daveen Deplacido", "Georgina Balding", "Andrew Bezant", "Waylen Jacobsson", "Arlina De Luna", "Osborne Morde", "Denyse Elfleet", "Theda Durston", "Pearle Dowbiggin", "Guthry Giraudeau", "Clara Ballsdon", "Madge Yushmanov", "Devi Molohan", "Josh Garritley", "Jerad Hawker", "Scot Dumberell", "Elita Skeermor", "Bobbye Cotte", "Bird Donaldson", "Julius Kee", "Selma Oade", "Burnard Truin", "Andreas MacLachlan", "Ulrika Matuszkiewicz", "Olly Costen", "Claus Ludewig", "Bent Barthrup", "Hortensia Rainford", "Cort Spatari", "Latrina Grishenkov", "Rebeka Garforth", "Krissy Carmen", "Betteanne Road", "Pierette Reck", "Marice Berzons", "Olia Lante", "Richmound Mirfin", "Lowe Ketts", "Kathleen Bryan", "Booth Dorricott", "Wanda Lambird", "Aime Pembry", "Burl McGray", "Meghann Morriss", "Beverlie Dowson", "Sig Giacopazzi", "Bambi Lloyd-Williams", "Kariotta Jobbins", "Joana Egar", "Morissa Lethlay", "Basile Ege", "Cliff Leebetter", "Vergil Gribbins", "Tami Fattori", "Garik Sidebotton", "Tobias Haslock", "Valentijn Snook", "Angie Milborn", "Obediah Clouston", "Muhammad Sieghart", "Susy Ife", "Ikey Rhodes", "Ingaborg Hanratty", "Arleen Heighton", "Abraham Robard", "Felipe Pumfrett", "Joell Pitceathly", "Riva Discombe", "Efrem Ellsom", "Mareah Gillani", "Mack Slyford", "Zacherie Westwick", "Esme Dukes", "Wendie Sharpe", "Harmonia Yewman", "Dania Pavey", "Farrand O' Neligan", "Aubrey Belfitt", "Wash Maestro", "Teresa Blundel", "Karie Fulks", "Zita Boliver", "Augusta Ganders", "Marshall Silman", "Angus Tilmouth", "Yvonne Edginton", "Evangeline Frank", "Cinderella Huckleby", "Theodoric Adamovitch", "Christin Levicount", "Mirabelle Healeas", "Rachael Roxburgh", "Wilmar De Roeck", "Wait Kipling", "Adrianna Morehall", "Elset Grayshan", "Aubry Perrinchief", "Dagmar Romushkin", "Wilmar Skrzynski", "Edwin Hay", "Basile Moses", "Deloris Gumley", "Ida Carabet", "Cara Mattheissen", "Dickie Sagrott", "Guy Batie", "Dukey Grinnov", "Berthe Scholcroft", "Arvie Greenstreet", "Derron Kubek", "Bride Djorvic", "Bryna McAuliffe", "Roxie Poulston", "Mollie Warham", "Aloisia Seally", "Cele Cumesky", "Ermentrude Harold", "Noni Tarren", "Rene Whitley", "Catlee Cordeau]", "Tim Franzettoini", "Allyn Maunton", "Rhett Abramof", "Natty Jardein", "Constanta Bordman", "Ambrosius Lauks", "Deny Filip", "Bobbe Stoppe", "Vaughan Butland", "Derwin Boulder", "Brod Vaen", "Nikola D'Oyly", "Elspeth Swarbrigg", "Bail Galland", "Philippe Swindlehurst", "Mickie Ive", "Fae Chismon", "Josepha Crighten", "Genvieve Bonehill", "Audry Stanbro", "Jackqueline Dudden", "Lionello Reubens", "Valentina Garlee", "Rozanne Mount", "Constantine Hebdon", "Marlin Clarke", "Arvie Waggitt", "Julius Gobbet", "Pren Pryor", "Fedora Ruter", "Lawton Boyes", "Gaile Piggen", "Carling Phibb", "Galvin Rosendale", "Susy Jemmett", "Trstram Mapam", "Linzy Allberry", "Sayres Farrand", "Jerri MacIlory", "Amity Oxberry", "Myrlene Winterbottom", "Melosa Haddy", "Bartolemo Currier", "Haskel McDugal", "Nicolle Deedes", "Leigh Baack", "Meredeth Gallo", "Harriette MacIver", "Elisabeth Berrisford", "Eli Lightoller", "Chastity Caulcott", "Rosette Liggins", "Raleigh Latchford", "Korrie Maccree", "Asher Willerson", "Franciska Nias", "Jo Crummie", "Paula Spofforth", "Elroy Kunzler", "Klemens Birtles", "Abbe Trahar", "Debee Persse", "Yank Prickett", "Roda Tuckey", "Kaiser Dubbin", "Gillan Polsin", "Jeffry Gossan", "Kaleb Chastang", "Denney Eckford", "Corabella Hoble", "Roderic Armsden", "Ignace Wickwar", "Sigismond Lodwig", "Devondra Cholerton", "Idaline Doni", "Sherwood Tomney", "Asher Blewett", "Henry Haighton", "Sauveur Le Hucquet", "Brandon Clute", "Meryl Diggle", "Elisha Scinelli", "Baryram Cancott", "Jessalyn Hankinson", "Gaelan Cumberlidge", "Inesita Lancetter", "Odey Loveday", "Dee Lyptrit", "Gardiner Cousen", "Niles Rentcome", "Otis Corgenvin", "Rodi Caulcott", "Hertha Belf", "Windham Goney", "Annabell Grunnell", "Codie Yanson", "Sarene Lightning", "Gerladina Affuso", "Christie Archdeacon", "Tracey Joscelyn", "Ethel Domone", "Cahra Duffan", "Thorstein Van Velden", "Rog Twentyman", "Turner Keunemann", "Ketty Hows", "Welbie Schole", "Jillana Penhall", "Delphinia Fardoe", "Crystal Spottiswood", "Krystalle Pettitt", "Charley Filpi", "Liz Dawtry", "Morganne Bonfield", "Conrade Guidotti", "Joyann Keyson", "Stanislaw Johnikin", "Brewer Laurentin", "Twila Brandenburg", "Franz Ganiclef", "Colly Takkos", "Sacha Aristide", "Bobby Watmore", "Wald Ganniclifft", "Catherin Lorain", "Deni Barsby", "Iggy Stranks", "Steven Sabathe", "Leila Pybworth", "Florinda Gorey", "Northrup Waind", "Tobias Vicary", "Terra Hrinishin", "Vally Juckes", "D'arcy Teape", "Rex Bernlin", "Cindi Corsan", "Nicol Hugnin", "Javier Mounch", "Kali Acors", "Rebe Grindley", "Ron Shoosmith", "Cahra Shelborne", "Cassy Beaglehole", "Jeff Spalls", "Morten MacGillavery", "Lefty Grandham", "Lana Strutt", "Nikolaos Derell", "Aeriel Cutbirth", "Philippe McClune", "Beatrix Gallehawk", "Rab Fountaine", "Codee Ongin", "Alfi Brayfield", "Nissa Muzzillo", "Brittany Roller", "Oralia Gentle", "Lelia Peirpoint", "Jephthah Kewish", "Britta Sedgebeer", "Wilhelm Cadney", "Linus Brecknell", "Titus McGaugey", "Igor Duxbury", "Celine Tatersale", "Waverley Bartlam", "Barbara Nannizzi", "Clyve Grebert", "Timothea Eburah", "Augustine Luparti", "Merrile Cristol", "Lisbeth Trusler", "Fonsie Bouldon", "Lynett Lotte", "Jeffry Rosenbloom", "Cristi Maric", "Jackie Faichnie", "Bethina Phette", "Latashia Searles", "Leupold von Hagt", "Agata Paaso", "Sibby Cundict", "Gradey Merrall", "Sherilyn Cato", "Rees Saveall", "Collen Broadbear", "Michelle Tenwick", "Joseito Marzelle", "Anders Denial", "Tuck Preedy", "Karyn Sangster", "Pamella MacSwayde", "Charmian Camplejohn", "Felicia Vinick", "Bernadine Brooksbie", "Konstantine Blair", "Son Noweak", "Lloyd Leven", "Kirsti Sedgmond", "Cesya Simonds", "Randi MacUchadair", "Kitti Amesbury", "Ruby Durrand", "Bobbe Haig", "Aeriel Common", "William Slinger", "Marti Stanion", "Nonie Cuppitt", "Gerardo Bedell", "Halette Kenn", "Mortimer Sponder", "Melli Pearch", "Christophe Linbohm", "Ezekiel Plows", "Sallie Hairsine", "Brenn Shefton", "Ferrel Kivlin", "Gram Dykas", "Dewie Trewman", "Devin Arsnell", "Isahella Assante", "Rosalinda Matussow", "Leanna Ionesco", "Jay Sturror", "Barry Ferres", "Tonia Hiscoke", "Di Berthe", "Annabela Thiem", "Karole Davidsen", "Esme L'oiseau", "Shelly Steer", "Giacinta Rotte", "Ariana Adlem", "Rici Sarsfield", "Hobard Adshed", "Adrienne Hamor", "Ibby Brangan", "Hanna Sukbhans", "Vivyan Ponting", "Benny Emburey", "Solly Willard", "Barry Domegan", "Elena Rodie", "Katey Cron", "Sherri Birchner", "Jacquie Oakwell", "Cesya Slight", "Noel Farman", "Bonni Milby", "Vittoria Aguirrezabala", "Esther Buard", "Dotti Endrici", "Othilia Cropper", "Whitman Abramino", "Venita McTeague", "Diane-marie Rainton", "Anthony Hallede", "Neil Dack", "Fedora Bertlin", "Vivian Buss", "Adlai Szymaniak", "Kasper Costell", "Rossy Kincey", "Clerc Friman", "Ronny McCane", "Jayme Rubrow", "Juliane Alexsandrev", "Ricoriki Lints", "Devi Lace", "Luca Veracruysse", "Paddie Neesam", "Judd Patterson", "Kore Scrooby", "Artemis Felmingham", "Garwood Leveritt", "Vidovic Sirey", "Curt Ajam", "Saw Caven", "Gabrielle Walkley", "Elberta Brucker", "Luz Mathivet", "Christy Catterall", "Konstance Reyson", "Miner Rowatt", "Antoinette Barry", "Sharia Reaper", "Aubert Golbourn", "Karna Elleyne", "Laney Isted", "Odilia Etuck", "Emmalynne Lauchlan", "Niven Sarjeant", "Liza Cliss", "Blair Feetham", "Gerrie Lipprose", "Kikelia Tieman", "Ignacius Hannah", "Reamonn Tilley", "Mathian Carrivick", "Breanne Woolston", "Barrett Stonebanks", "Farrand Skacel", "Marcellina Weatherall", "Trescha Aubry", "Ranna Nosworthy", "Dale Crown", "Helenka de Merida", "Jacky Shefton", "Georgeta Bulpitt", "Carney Tamas", "Dayle Leaf", "Dud Chart", "Cash Odom", "Nana Rodger", "Chauncey Dunstan", "Augustin Bewlay", "Angie Dumberell", "Ardelle Benian", "Morse Grangier", "Joye Preon", "Tonia Lundon", "Dolph Polding", "Krystyna Benstead", "Ira Ferreli", "Scarlett Meharg", "Annissa Jolly", "Batholomew Gosenell", "Audi Kleinmann", "Joey Hazley", "Erina Sheaf", "Cos Swaysland", "Olympia Realff", "Brod Walicki", "Arlee Terren", "Guillaume Ranson", "Sheffie Pideon", "Tabbie Cornelleau", "Celesta McPike", "Izaak Askin", "Tremayne Benninck", "Trudy Lagadu", "Lenore Radden", "Silvia Sidden", "Martha Dewett", "Elita Chinnock", "Jessamyn Jeannin", "Audry Galiford", "Osbourn Lattey", "Gran Puckring", "Tod Jore", "Elizabet Bisco", "Datha Pawling", "Gabby Rallin", "Bari Scinelli", "Prudi Grzesiewicz", "Mel Malkin", "Sylvan Matcham", "Muire Micheau", "Kendre Heaseman", "Merrill Cleobury", "Jenda Bomfield", "Cristi Goom", "Wesley Dominichelli", "Levey Kauble", "Ailene Bemrose", "Guillermo McReath", "Cedric Boaler", "Kelli Vignaux", "Hercules Gipp", "Lilas Strickland", "Carolan Lamond", "Ugo Dehmel", "Rab McKeran", "Wally Brettoner", "Ethyl Borghese", "Mikel Maffucci", "Killy Popham", "Branden Fery", "Kimberley Bittany", "Sisile Bartoszewski", "Collie Ramsby", "Pyotr Bonhill", "Tait Petrasek", "Kesley O'Doherty", "Clio Simunek", "Elva Broad", "Mathias Ramel", "Rhody Kneesha", "Quintus Shorton", "Barnebas Habershon", "Tybie Canas", "Alaine Durn", "Meggi Ponton", "Weider Woodyatt", "Jeremy Dominik", "Fax Andri", "Julieta Sirette", "Hubert Bidewell", "Jessie Dugue", "Tiffani Twopenny", "Ava De Ambrosi", "Berny Berthomieu", "Carlyle Oxlee", "Mehetabel Vevers", "Jackqueline Poplee", "Debera Abad", "Gene Scathard", "Harrie Spelwood", "Paolina Le Prevost", "Niki Czapla", "Cody Colls", "Murielle Sancraft", "Alida Sconce", "Arvin Bevar", "Aeriell Kinze", "Westbrook Aggio", "Carlee Foulis", "Timotheus Tarpey", "Betta Chessel", "Herculie Ivakhin", "Troy Hedin", "Perren Pedrick", "Reinald Cerro", "Kellyann Wallwork", "Joanne Beasleigh"];
 const familyStatuses = ['Single', 'Married', 'Married, 1 child', 'Married, 2 kids', 'Married, 3 kids', 'Single, 1 child', 'Divorced', 'Widowed'];
 const productCombos = [
     'Mortgage, Home Insurance',
@@ -106,8 +160,6 @@ const productCombos = [
 function generatePopulationData(count = 100) {
     const data = [];
     for (let i = 0; i < count; i++) {
-        const firstName = firstNames[i % firstNames.length];
-        const lastName = lastNames[Math.floor(i / firstNames.length) % lastNames.length];
         const hasHome = Math.random() > 0.1;
         const mortgageStatus = Math.random() > 0.3 ? 'Active' : 'Paid-off';
         const income = 50000 + Math.floor(Math.random() * 100000);
@@ -118,7 +170,7 @@ function generatePopulationData(count = 100) {
         const products = productCombos[Math.floor(Math.random() * productCombos.length)];
 
         data.push({
-            name: `${firstName} ${lastName}`,
+            name: fullNames[i % fullNames.length],
             home: hasHome,
             mortgage: mortgageStatus,
             income: income,
@@ -160,6 +212,11 @@ const productConfig = {
 let currentSelectedProduct = 'heloc';
 let currentSelectedPersona = 'home-owners';
 
+// Map control state
+let mapControlsOpen = false;
+let mapLegendVisible = true;
+let mapActiveStateId = null; // Track currently zoomed state
+
 // ----------------------------------------
 // DOM Elements
 // ----------------------------------------
@@ -184,10 +241,13 @@ const populationTableBody = document.getElementById('population-table-body');
 const campaignSearch = document.getElementById('campaign-search');
 const metricCards = document.querySelectorAll('.metric-card');
 const usaMap = document.getElementById('usa-map');
+const comparisonWrapper = document.querySelector('.comparison-wrapper');
+const stateCharCard = document.getElementById('state-char-card');
 
 // ----------------------------------------
 // Navigation Functions
 // ----------------------------------------
+
 
 /**
  * Switch between main sections (Home, Campaign Studio)
@@ -523,7 +583,33 @@ function populatePopulationTable() {
 // ----------------------------------------
 
 /**
+ * Hides the state comparison panel and restores the USA panel to full width.
+ */
+function showStateComparison(stateGeoData) {
+    if (!comparisonWrapper || !stateCharCard) return;
+
+    const baseChars = personas[currentSelectedPersona].characteristics;
+    const stateData = generateStateCharData(baseChars, stateGeoData.id);
+    
+    // Populate the state card
+    document.getElementById('state-char-title').textContent = `Persona Characteristics ${stateGeoData.properties.name}`;
+    document.getElementById('state-char-population').textContent = stateData.population;
+    document.getElementById('state-char-assets').textContent = stateData.assets;
+    document.getElementById('state-char-debt').textContent = stateData.debt;
+    document.getElementById('state-char-dti').textContent = stateData.dti;
+    document.getElementById('state-char-credit').textContent = stateData.credit;
+    document.getElementById('state-char-age').textContent = stateData.age;
+    document.getElementById('state-char-spend').textContent = stateData.spend;
+
+    // Show the card
+    stateCharCard.classList.remove('hidden');
+    comparisonWrapper.classList.add('active');
+}
+
+
+/**
  * Generate USA map with D3.js and TopoJSON
+ * Enhanced with zoom and state comparison panel
  */
 async function generateUSAMap() {
     if (!usaMap) return;
@@ -549,7 +635,9 @@ async function generateUSAMap() {
             .range(d3.schemeGreens[7]);
 
         // Projection and path
-        const projection = d3.geoAlbersUsa().fitSize([320, 200], topojson.feature(us, us.objects.states));
+        const mapWidth = 320;
+        const mapHeight = 200;
+        const projection = d3.geoAlbersUsa().fitSize([mapWidth, mapHeight], topojson.feature(us, us.objects.states));
         const path = d3.geoPath(projection);
 
         // Create SVG
@@ -557,29 +645,155 @@ async function generateUSAMap() {
             .append("svg")
             .attr("width", "100%")
             .attr("height", "100%")
-            .attr("viewBox", [0, 0, 320, 200])
+            .attr("viewBox", [0, 0, mapWidth, mapHeight])
             .style("max-width", "100%")
             .style("height", "auto");
 
+        // Map layer for zoom/pan
+        const mapG = svg.append('g').attr('id', 'map-layer');
+
+        // Zoom behavior
+        const zoom = d3.zoom()
+            .scaleExtent([1, 8])
+            .on('zoom', (event) => {
+                mapG.attr('transform', event.transform);
+            });
+
+        svg.call(zoom);
+
         // Draw states
-        svg.append("g")
-            .selectAll("path")
+        const states = mapG.selectAll('path.usa-state')
             .data(statesGeo)
-            .join("path")
-            .attr("class", "usa-state")
-            .attr("fill", d => color(spendData.get(d.id)))
-            .attr("d", path)
-            .append("title")
-            .text(d => `Spend: $${spendData.get(d.id)}K`);
+            .join('path')
+            .attr('class', 'usa-state')
+            .attr('fill', d => color(spendData.get(d.id)))
+            .attr('d', path)
+            .on('click', function(event, d) {
+                // If clicking the same state that's already active, reset view
+                if (mapActiveStateId === d.id) {
+                    resetMapZoom();
+                } else {
+                    zoomToState(d, this);
+                }
+            });
+
+        // Add tooltips
+        states.append('title')
+            .text(d => `${d.properties.name}\nSpend: $${spendData.get(d.id)}K`);
 
         // Draw state borders
-        svg.append("path")
+        mapG.append("path")
             .datum(topojson.mesh(us, us.objects.states, (a, b) => a !== b))
             .attr("fill", "none")
             .attr("stroke", "white")
             .attr("stroke-width", "0.5")
             .attr("stroke-linejoin", "round")
             .attr("d", path);
+
+        // Zoom to specific state
+        function zoomToState(d, element) {
+            mapActiveStateId = d.id;
+            states.classed('active', false);
+            d3.select(element).classed('active', true);
+            
+            showStateComparison(d);
+
+            const [[x0, y0], [x1, y1]] = path.bounds(d);
+            const dx = x1 - x0;
+            const dy = y1 - y0;
+            const x = (x0 + x1) / 2;
+            const y = (y0 + y1) / 2;
+            const scale = Math.max(1, Math.min(8, 0.9 / Math.max(dx / mapWidth, dy / mapHeight)));
+            const translate = [mapWidth / 2 - scale * x, mapHeight / 2 - scale * y];
+
+            svg.transition().duration(750).call(
+                zoom.transform,
+                d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale)
+            );
+        }
+
+        // Reset zoom function
+        function resetMapZoom() {
+            mapActiveStateId = null;
+            states.classed('active', false);
+            svg.transition().duration(600).call(zoom.transform, d3.zoomIdentity);
+            hideStateComparison();
+        }
+
+        // Double-click to reset
+        svg.on('dblclick.zoom', () => {
+            resetMapZoom();
+        });
+
+        // Legend (simple color bar)
+        const legend = svg.append("g")
+            .attr("id", "map-legend")
+            .attr("transform", "translate(10, 165)");
+
+        const legendWidth = 100;
+        const legendHeight = 6;
+        const legendScale = d3.scaleLinear().domain([2, 10]).range([0, legendWidth]);
+
+        legend.selectAll("rect")
+            .data(color.range().map(c => color.invertExtent(c)))
+            .join("rect")
+            .attr("height", legendHeight)
+            .attr("x", d => legendScale(d[0]))
+            .attr("width", d => legendScale(d[1]) - legendScale(d[0]))
+            .attr("fill", d => color(d[0]));
+
+        legend.append("text")
+            .attr("y", -2)
+            .attr("font-size", "8px")
+            .attr("fill", "#666")
+            .text("Spend ($K)");
+
+        legend.append("text")
+            .attr("y", legendHeight + 8)
+            .attr("font-size", "7px")
+            .attr("fill", "#999")
+            .text("2");
+
+        legend.append("text")
+            .attr("x", legendWidth)
+            .attr("y", legendHeight + 8)
+            .attr("font-size", "7px")
+            .attr("fill", "#999")
+            .attr("text-anchor", "end")
+            .text("10");
+
+        // ===== Control Panel Logic =====
+        const mapCard = usaMap.closest('.map-card');
+        const ctrlToggle = document.getElementById('map-ctrl-toggle');
+        const ctrlHome = document.getElementById('map-ctrl-home');
+        const ctrlLegend = document.getElementById('map-ctrl-legend');
+        const subButtons = document.querySelectorAll('.map-control-sub');
+
+        if (ctrlToggle) {
+            // Toggle controls open/close
+            ctrlToggle.addEventListener('click', () => {
+                mapControlsOpen = !mapControlsOpen;
+                ctrlToggle.classList.toggle('open', mapControlsOpen);
+                subButtons.forEach((btn, index) => {
+                    setTimeout(() => {
+                        btn.classList.toggle('visible', mapControlsOpen);
+                    }, index * 50);
+                });
+            });
+
+            // Home button - reset zoom
+            ctrlHome.addEventListener('click', () => {
+                resetMapZoom();
+            });
+
+            // Legend toggle button
+            ctrlLegend.addEventListener('click', () => {
+                mapLegendVisible = !mapLegendVisible;
+                ctrlLegend.classList.toggle('active', mapLegendVisible);
+                legend.style('opacity', mapLegendVisible ? 1 : 0);
+                legend.style('pointer-events', mapLegendVisible ? 'auto' : 'none');
+            });
+        }
 
     } catch (error) {
         console.error('Error loading map:', error);
@@ -1127,13 +1341,14 @@ function showDownloadOptions(event) {
         </button>
     `;
 
-    // Position dropdown
-    const rect = btn.getBoundingClientRect();
-    dropdown.style.position = 'absolute';
-    dropdown.style.top = `${rect.bottom + 5}px`;
-    dropdown.style.right = `${window.innerWidth - rect.right}px`;
-
-    document.body.appendChild(dropdown);
+    // Find the wrapper and append the dropdown
+    const wrapper = btn.closest('.download-button-wrapper');
+    if (wrapper) {
+        wrapper.appendChild(dropdown);
+    } else {
+        // Fallback if wrapper not found (shouldn't happen with correct HTML)
+        document.body.appendChild(dropdown);
+    }
 
     // Handle download clicks
     dropdown.querySelectorAll('.download-option').forEach(option => {

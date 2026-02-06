@@ -8,18 +8,164 @@
     <style>
         body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; background: #f0f0f0; }
         #vis-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 20px; position: relative; }
-        .state:hover { fill: #ff9900 !important; cursor: pointer; transition: 0.2s; }
+        .state { transition: fill 0.2s; }
+        .state:hover { fill: #ff9900 !important; cursor: pointer; }
+        .state.active { fill: #ff6600 !important; }
         .legend { font-size: 12px; }
+
+        /* Control Panel Styles */
+        .control-panel {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+        }
+
+        .control-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease, opacity 0.3s ease, margin-top 0.3s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        .control-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+            pointer-events: none;
+        }
+
+        /* Main toggle button */
+        .control-toggle {
+            background: #FD7E14;
+            z-index: 110;
+            position: relative;
+        }
+
+        .control-toggle svg {
+            transition: transform 0.3s ease;
+        }
+
+        .control-toggle.open svg {
+            transform: rotate(45deg);
+        }
+
+        /* Sub-control buttons */
+        .control-sub {
+            background: #2563eb;
+            opacity: 0;
+            pointer-events: none;
+            margin-top: -44px;
+            z-index: 100;
+        }
+
+        .control-sub.visible {
+            opacity: 1;
+            pointer-events: auto;
+            margin-top: 8px;
+        }
+
+        .control-sub:hover {
+            background: #1e4db7;
+        }
+
+        .control-sub.active {
+            background: #28a745;
+        }
+
+        .control-sub.active:hover {
+            background: #1f8c38;
+        }
+
+        /* Mode indicator */
+        .mode-indicator {
+            position: absolute;
+            top: 70px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 14px;
+            border-radius: 4px;
+            font-size: 13px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .mode-indicator.visible {
+            opacity: 1;
+        }
+
+        /* Hide brush in touch mode */
+        .touch-mode .brush { display: none; }
     </style>
 </head>
 <body>
 
     <div id="vis-container">
       <h2>U.S. Unemployment Rate (Dummy Data)</h2>
-      <svg id="reset-zoom" aria-label="Restaurar zoom" style="position:absolute; top:12px; right:16px; z-index:10; cursor:pointer;" fill="#FD7E14" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48px" height="48px"><path d="M 23.951172 4 A 1.50015 1.50015 0 0 0 23.072266 4.3222656 L 8.859375 15.519531 C 7.0554772 16.941163 6 19.113506 6 21.410156 L 6 40.5 C 6 41.863594 7.1364058 43 8.5 43 L 18.5 43 C 19.863594 43 21 41.863594 21 40.5 L 21 30.5 C 21 30.204955 21.204955 30 21.5 30 L 26.5 30 C 26.795045 30 27 30.204955 27 30.5 L 27 40.5 C 27 41.863594 28.136406 43 29.5 43 L 39.5 43 C 40.863594 43 42 41.863594 42 40.5 L 42 21.410156 C 42 19.113506 40.944523 16.941163 39.140625 15.519531 L 24.927734 4.3222656 A 1.50015 1.50015 0 0 0 23.951172 4 z M 24 7.4101562 L 37.285156 17.876953 C 38.369258 18.731322 39 20.030807 39 21.410156 L 39 40 L 30 40 L 30 30.5 C 30 28.585045 28.414955 27 26.5 27 L 21.5 27 C 19.585045 27 18 28.585045 18 30.5 L 18 40 L 9 40 L 9 21.410156 C 9 20.030807 9.6307412 18.731322 10.714844 17.876953 L 24 7.4101562 z"/></svg>
+
+      <!-- Control Panel -->
+      <div class="control-panel">
+        <!-- Toggle Button (+) -->
+        <button class="control-btn control-toggle" id="ctrl-toggle" title="Toggle Controls">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+          </svg>
+        </button>
+
+        <!-- Home Button -->
+        <button class="control-btn control-sub" id="ctrl-home" title="Reset Zoom">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+          </svg>
+        </button>
+
+        <!-- Zoom Mode Button (Magnifier) -->
+        <button class="control-btn control-sub" id="ctrl-zoom" title="Drag to Zoom Mode">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            <path d="M12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z"/>
+          </svg>
+        </button>
+
+        <!-- Touch Mode Button (Cursor/Pointer) -->
+        <button class="control-btn control-sub active" id="ctrl-touch" title="Click State to Zoom">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13.64 21.97C13.14 22.21 12.54 22 12.31 21.5L10.13 16.76L7.62 18.78C7.45 18.92 7.24 19 7 19C6.45 19 6 18.55 6 18V3C6 2.45 6.45 2 7 2C7.24 2 7.47 2.09 7.64 2.23L19.57 11.69C19.84 11.9 20 12.22 20 12.57C20 13.17 19.53 13.68 18.93 13.74L14.84 14.21L17.03 18.95C17.27 19.45 17.05 20.05 16.55 20.28L13.64 21.97Z"/>
+          </svg>
+        </button>
+
+        <!-- Legend Toggle Button -->
+        <button class="control-btn control-sub active" id="ctrl-legend" title="Toggle Legend">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/>
+          </svg>
+        </button>
       </div>
 
+      <!-- Mode Indicator -->
+      <div class="mode-indicator" id="mode-indicator">Touch Mode: Click on a state to zoom</div>
+
+    </div>
+
 <script>
+// App State
+let currentMode = 'touch'; // 'zoom' or 'touch' - default is touch
+let controlsOpen = false;
+let legendVisible = true;
+let activeStateId = null; // Track currently zoomed state
+
 async function drawMap() {
   const us = await d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json");
   const statesGeo = topojson.feature(us, us.objects.states).features;
@@ -27,16 +173,16 @@ async function drawMap() {
   // Dummy data
   const dummyData = new Map();
   statesGeo.forEach(s => {
-    const randomRate =(Math.random() * (12 - 2) + 2).toFixed(1);
+    const randomRate = (Math.random() * (12 - 2) + 2).toFixed(1);
     dummyData.set(s.id, +randomRate);
   });
 
-  // Color scale (forma “segura”)
+  // Color scale
   const color = d3.scaleQuantize()
     .domain([2, 12])
     .range(d3.schemeBlues[9]);
 
-  // PROYECCIÓN + PATH
+  // Projection + Path
   const projection = d3.geoAlbersUsa().fitSize([975, 610], topojson.feature(us, us.objects.states));
   const path = d3.geoPath(projection);
 
@@ -47,30 +193,42 @@ async function drawMap() {
     .attr("viewBox", [0, 0, 975, 610])
     .style("max-width", "100%")
     .style("height", "auto");
-  // Create a dedicated map layer so we can apply zoom/transform to map content
+
+  // Map layer for zoom/pan
   const mapG = svg.append('g').attr('id', 'map-layer');
 
-  // Zoom behavior: will update the transform of mapG
+  // Zoom behavior
   const zoom = d3.zoom()
     .scaleExtent([1, 8])
     .on('zoom', (event) => {
       mapG.attr('transform', event.transform);
     });
 
-  // Apply zoom to the svg (so wheel/pan works)
   svg.call(zoom);
 
-  // States (draw into mapG so they pan/zoom together)
-  mapG.selectAll('path')
+  // Draw states
+  const states = mapG.selectAll('path.state')
     .data(statesGeo)
     .join('path')
     .attr('class', 'state')
     .attr('fill', d => color(dummyData.get(d.id)))
     .attr('d', path)
-    .append('title')
+    .on('click', function(event, d) {
+      if (currentMode === 'touch') {
+        // If clicking the same state that's already active, reset zoom
+        if (activeStateId === d.id) {
+          resetZoom();
+        } else {
+          zoomToState(d, this);
+        }
+      }
+    });
+
+  // Add tooltips
+  states.append('title')
     .text(d => `ID: ${d.id}\nRate: ${dummyData.get(d.id)}%`);
 
-  // Borders (also inside mapG)
+  // State borders
   mapG.append('path')
     .datum(topojson.mesh(us, us.objects.states, (a, b) => a !== b))
     .attr('fill', 'none')
@@ -78,25 +236,22 @@ async function drawMap() {
     .attr('stroke-linejoin', 'round')
     .attr('d', path);
 
-  // Brush (selection rectangle) to define zoom area
+  // Brush for drag-to-zoom
   const brush = d3.brush()
     .extent([[0, 0], [975, 610]])
     .on('start', () => {
-      // temporarily disable zoom while brushing to avoid conflicts
       svg.on('.zoom', null);
     })
     .on('end', (event) => {
-      const s = event.selection;
-      // re-enable zoom after brushing
       svg.call(zoom);
-      if (!s) return; // if no selection, do nothing
+      const s = event.selection;
+      if (!s) return;
       const [[x0, y0], [x1, y1]] = s;
       const selW = x1 - x0;
       const selH = y1 - y0;
       if (selW === 0 || selH === 0) return;
-      // Account for current transform so successive zooms work correctly
+
       const cur = d3.zoomTransform(svg.node());
-      // Convert selection pixels to map (untransformed) coordinates
       const x0m = (x0 - cur.x) / cur.k;
       const y0m = (y0 - cur.y) / cur.k;
       const x1m = (x1 - cur.x) / cur.k;
@@ -104,29 +259,57 @@ async function drawMap() {
       const selWmap = x1m - x0m;
       const selHmap = y1m - y0m;
       if (selWmap === 0 || selHmap === 0) return;
+
       const scale = Math.min(975 / selWmap, 610 / selHmap);
       const translateX = -x0m * scale + (975 - selWmap * scale) / 2;
       const translateY = -y0m * scale + (610 - selHmap * scale) / 2;
       const t = d3.zoomIdentity.translate(translateX, translateY).scale(scale);
       svg.transition().duration(750).call(zoom.transform, t);
-      // clear brush selection
       svg.select('.brush').call(brush.move, null);
     });
 
-  svg.append('g').attr('class', 'brush').call(brush);
+  const brushG = svg.append('g').attr('class', 'brush').call(brush);
 
-  // Double-click to reset zoom
-  svg.on('dblclick', () => {
-    svg.transition().duration(600).call(zoom.transform, d3.zoomIdentity);
-  });
+  // Zoom to specific state
+  function zoomToState(d, element) {
+    // Track active state
+    activeStateId = d.id;
+    // Remove active class from all states
+    states.classed('active', false);
+    // Add active class to clicked state
+    d3.select(element).classed('active', true);
 
-  // Reset button handler
-  d3.select('#reset-zoom').on('click', () => {
+    const [[x0, y0], [x1, y1]] = path.bounds(d);
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+    const x = (x0 + x1) / 2;
+    const y = (y0 + y1) / 2;
+    const scale = Math.max(1, Math.min(8, 0.9 / Math.max(dx / 975, dy / 610)));
+    const translate = [975 / 2 - scale * x, 610 / 2 - scale * y];
+
+    svg.transition().duration(750).call(
+      zoom.transform,
+      d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale)
+    );
+  }
+
+  // Reset zoom function
+  function resetZoom() {
+    activeStateId = null;
+    states.classed('active', false);
     svg.transition().duration(600).call(zoom.transform, d3.zoomIdentity);
+  }
+
+  // Double-click to reset
+  svg.on('dblclick.zoom', () => {
+    resetZoom();
   });
 
   // Legend
-  const legend = svg.append("g").attr("transform", "translate(600, 40)");
+  const legend = svg.append("g")
+    .attr("id", "map-legend")
+    .attr("transform", "translate(600, 40)");
+
   const x = d3.scaleLinear().domain([2, 12]).rangeRound([0, 260]);
 
   legend.selectAll("rect")
@@ -145,6 +328,95 @@ async function drawMap() {
 
   legend.call(d3.axisBottom(x).tickSize(13).tickValues([2, 4, 6, 8, 10, 12]))
     .select(".domain").remove();
+
+  // ===== Control Panel Logic =====
+  const ctrlToggle = document.getElementById('ctrl-toggle');
+  const ctrlHome = document.getElementById('ctrl-home');
+  const ctrlZoom = document.getElementById('ctrl-zoom');
+  const ctrlTouch = document.getElementById('ctrl-touch');
+  const ctrlLegend = document.getElementById('ctrl-legend');
+  const modeIndicator = document.getElementById('mode-indicator');
+  const visContainer = document.getElementById('vis-container');
+  const subButtons = document.querySelectorAll('.control-sub');
+
+  // Toggle controls open/close
+  ctrlToggle.addEventListener('click', () => {
+    controlsOpen = !controlsOpen;
+    ctrlToggle.classList.toggle('open', controlsOpen);
+    subButtons.forEach((btn, index) => {
+      setTimeout(() => {
+        btn.classList.toggle('visible', controlsOpen);
+      }, index * 50);
+    });
+
+    // Always set to touch mode when toggling (open or close)
+    if (currentMode !== 'touch') {
+      setMode('touch');
+    }
+  });
+
+  // Home button - reset zoom
+  ctrlHome.addEventListener('click', () => {
+    resetZoom();
+  });
+
+  // Zoom mode button
+  ctrlZoom.addEventListener('click', () => {
+    setMode('zoom');
+  });
+
+  // Touch mode button
+  ctrlTouch.addEventListener('click', () => {
+    setMode('touch');
+  });
+
+  // Legend toggle button
+  ctrlLegend.addEventListener('click', () => {
+    legendVisible = !legendVisible;
+    ctrlLegend.classList.toggle('active', legendVisible);
+    legend.style('opacity', legendVisible ? 1 : 0);
+    legend.style('pointer-events', legendVisible ? 'auto' : 'none');
+  });
+
+  // Set mode function
+  function setMode(mode) {
+    currentMode = mode;
+
+    // Update button states
+    ctrlZoom.classList.toggle('active', mode === 'zoom');
+    ctrlTouch.classList.toggle('active', mode === 'touch');
+
+    // Update container class for CSS
+    visContainer.classList.toggle('touch-mode', mode === 'touch');
+
+    // Show/hide brush
+    brushG.style('display', mode === 'zoom' ? null : 'none');
+
+    // Update mode indicator
+    if (mode === 'zoom') {
+      modeIndicator.textContent = 'Zoom Mode: Drag to select area';
+    } else {
+      modeIndicator.textContent = 'Touch Mode: Click on a state to zoom';
+    }
+
+    // Show indicator briefly
+    modeIndicator.classList.add('visible');
+    setTimeout(() => {
+      modeIndicator.classList.remove('visible');
+    }, 2000);
+
+    // Reset to original state when changing modes
+    resetZoom();
+  }
+
+  // Initialize: start in touch mode (hide brush)
+  brushG.style('display', 'none');
+
+  // Initialize mode indicator
+  modeIndicator.classList.add('visible');
+  setTimeout(() => {
+    modeIndicator.classList.remove('visible');
+  }, 3000);
 }
 
 drawMap();

@@ -213,47 +213,107 @@
                             </div>
 
                             <!-- Map Card -->
-                            <div class="map-card">
+                            <div class="map-card" style="position: relative;">
                                 <h4>Spend by Location</h4>
                                 <div class="usa-map" id="usa-map">
                                     <!-- SVG Map will be inserted here -->
+                                </div>
+
+                                <!-- Map Control Panel -->
+                                <div class="map-control-panel">
+                                    <!-- Toggle Button (+) -->
+                                    <button class="map-control-btn map-control-toggle" id="map-ctrl-toggle" title="Toggle Controls">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                                        </svg>
+                                    </button>
+
+                                    <!-- Home Button -->
+                                    <button class="map-control-btn map-control-sub" id="map-ctrl-home" title="Reset Zoom">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                                        </svg>
+                                    </button>
+
+                                    <!-- Legend Toggle Button -->
+                                    <button class="map-control-btn map-control-sub active" id="map-ctrl-legend" title="Toggle Legend">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                            <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/>
+                                        </svg>
+                                    </button>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Right Column -->
                         <div class="persona-details-column">
-                            <!-- Persona Characteristics -->
-                            <div class="characteristics-card">
-                                <h4>Persona Characteristics</h4>
-                                <div class="characteristics-list">
-                                    <div class="char-item">
-                                        <span class="char-label">Population</span>
-                                        <span class="char-value" id="char-population">35,000</span>
+                            <div class="comparison-wrapper">
+                                <!-- Persona Characteristics -->
+                                <div class="characteristics-card" id="usa-char-card">
+                                    <h4>Persona Characteristics USA</h4>
+                                    <div class="characteristics-list">
+                                        <div class="char-item">
+                                            <span class="char-label">Population</span>
+                                            <span class="char-value" id="char-population">35,000</span>
+                                        </div>
+                                        <div class="char-item">
+                                            <span class="char-label">Assets</span>
+                                            <span class="char-value" id="char-assets">$200,000 - $800,000</span>
+                                        </div>
+                                        <div class="char-item">
+                                            <span class="char-label">Debt</span>
+                                            <span class="char-value" id="char-debt">$100,000 - $400,000</span>
+                                        </div>
+                                        <div class="char-item">
+                                            <span class="char-label">Debt-to-Income Ratio</span>
+                                            <span class="char-value" id="char-dti">32%</span>
+                                        </div>
+                                        <div class="char-item">
+                                            <span class="char-label">Credit Score</span>
+                                            <span class="char-value" id="char-credit">700 - 770</span>
+                                        </div>
+                                        <div class="char-item">
+                                            <span class="char-label">Age Group</span>
+                                            <span class="char-value" id="char-age">30 - 55</span>
+                                        </div>
+                                        <div class="char-item">
+                                            <span class="char-label">Monthly Spend</span>
+                                            <span class="char-value" id="char-spend">$5,000 - $8,000</span>
+                                        </div>
                                     </div>
-                                    <div class="char-item">
-                                        <span class="char-label">Assets</span>
-                                        <span class="char-value" id="char-assets">$200,000 - $800,000</span>
-                                    </div>
-                                    <div class="char-item">
-                                        <span class="char-label">Debt</span>
-                                        <span class="char-value" id="char-debt">$100,000 - $400,000</span>
-                                    </div>
-                                    <div class="char-item">
-                                        <span class="char-label">Debt-to-Income Ratio</span>
-                                        <span class="char-value" id="char-dti">32%</span>
-                                    </div>
-                                    <div class="char-item">
-                                        <span class="char-label">Credit Score</span>
-                                        <span class="char-value" id="char-credit">700 - 770</span>
-                                    </div>
-                                    <div class="char-item">
-                                        <span class="char-label">Age Group</span>
-                                        <span class="char-value" id="char-age">30 - 55</span>
-                                    </div>
-                                    <div class="char-item">
-                                        <span class="char-label">Monthly Spend</span>
-                                        <span class="char-value" id="char-spend">$5,000 - $8,000</span>
+                                </div>
+                                <!-- State-specific Persona Characteristics (hidden by default) -->
+                                <div class="characteristics-card hidden" id="state-char-card">
+                                    <h4 id="state-char-title">Persona Characteristics</h4>
+                                    <div class="characteristics-list">
+                                        <div class="char-item">
+                                            <span class="char-label">Population</span>
+                                            <span class="char-value" id="state-char-population"></span>
+                                        </div>
+                                        <div class="char-item">
+                                            <span class="char-label">Assets</span>
+                                            <span class="char-value" id="state-char-assets"></span>
+                                        </div>
+                                        <div class="char-item">
+                                            <span class="char-label">Debt</span>
+                                            <span class="char-value" id="state-char-debt"></span>
+                                        </div>
+                                        <div class="char-item">
+                                            <span class="char-label">Debt-to-Income Ratio</span>
+                                            <span class="char-value" id="state-char-dti"></span>
+                                        </div>
+                                        <div class="char-item">
+                                            <span class="char-label">Credit Score</span>
+                                            <span class="char-value" id="state-char-credit"></span>
+                                        </div>
+                                        <div class="char-item">
+                                            <span class="char-label">Age Group</span>
+                                            <span class="char-value" id="state-char-age"></span>
+                                        </div>
+                                        <div class="char-item">
+                                            <span class="char-label">Monthly Spend</span>
+                                            <span class="char-value" id="state-char-spend"></span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -375,11 +435,13 @@
                         <div class="population-header">
                             <h4>Population Overview</h4>
                             <span class="population-subtitle">Home Owners</span>
-                            <button class="download-btn">
-                                <svg viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
-                                </svg>
-                            </button>
+                            <div class="download-button-wrapper">
+                                <button class="download-btn">
+                                    <svg viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                         <table class="data-table population-table">
                             <thead>
