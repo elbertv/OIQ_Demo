@@ -6,67 +6,349 @@
  */
 
 // ----------------------------------------
-// Simulated Data (Mock Database)
+// Data Loading & Configuration
 // ----------------------------------------
 
-const personas = {
-    'home-owners': {
-        name: 'Home Owners',
-        description: 'Established individuals who prioritize stability and long-term financial planning. They focus on managing mortgage obligations while building equity and maintaining lifestyle needs.',
-        characteristics: {
-            population: '35,000',
-            assets: '$200,000 - $800,000',
-            debt: '$100,000 - $400,000',
-            dti: '32%',
-            credit: '700 - 770',
-            age: '30 - 55',
-            spend: '$5,000 - $8,000'
-        },
+/**
+ * ========================================
+ * PERSONA MAPPING CONFIGURATION
+ * ========================================
+ * Maps the HTML data-persona attributes to pt.json persona names.
+ * Modify this object if you need to change the mapping.
+ */
+const PERSONA_KEY_MAP = {
+    'homeowners': 'Homeowners',
+    'first-time-homebuyer': 'First-Time Homebuyer',
+    'hnwi': 'High Net Worth Individual (HNWI)',
+    'budget-savers': 'Budget-Conscious Savers',
+    'frequent-travelers': 'Frequent Travelers',
+    'gig-workers': 'Gig Economy Workers',
+    'small-business': 'Small Business Owners',
+    'young-professionals': 'Young Professionals / First Jobbers',
+    'families': 'Families with Children',
+    'retirees': 'Retirees / Fixed Income',
+    'luxury': 'Luxury Lifestyle Consumers',
+    'credit-seekers': 'Credit Seekers / Builders',
+    'digital-natives': 'Digital Natives',
+    'renters': 'Renters',
+    'students': 'Students 18+ Age',
+    'financially-distressed': 'Financially Distressed Customers',
+    'at-risk': 'At-Risk Customers'
+};
+
+/**
+ * ========================================
+ * PERSONA DESCRIPTIONS & PRODUCTS
+ * ========================================
+ * Static descriptions and recommended products for each persona.
+ * These don't come from pt.json - customize them here.
+ */
+const PERSONA_META = {
+    'homeowners': {
+        description: 'Established individuals who prioritize stability and long-term financial planning. They focus on managing mortgage obligations while building equity.',
         products: ['Mortgage', 'Checking', 'Home Insurance', 'Credit Card']
     },
+    'first-time-homebuyer': {
+        description: 'Individuals entering the housing market for the first time. They need guidance and products that facilitate homeownership.',
+        products: ['Mortgage', 'Savings', 'Home Insurance', 'Credit Card']
+    },
+    'hnwi': {
+        description: 'High net worth individuals with significant assets. They seek premium services, wealth management, and exclusive benefits.',
+        products: ['Private Banking', 'Investment Account', 'Premium Credit Card', 'Estate Planning']
+    },
+    'budget-savers': {
+        description: 'Financially disciplined individuals focused on saving and minimizing expenses. They value low-fee products and high-yield savings.',
+        products: ['High-Yield Savings', 'No-Fee Checking', 'CD', 'Budget Credit Card']
+    },
+    'frequent-travelers': {
+        description: 'Individuals who travel regularly for work or leisure. They value travel rewards, no foreign transaction fees, and travel insurance.',
+        products: ['Travel Credit Card', 'Checking', 'Travel Insurance', 'Currency Exchange']
+    },
+    'gig-workers': {
+        description: 'Freelancers and independent contractors with variable income. They need flexible products and tools for managing irregular cash flow.',
+        products: ['Flexible Checking', 'Savings', 'Credit Builder Card', 'Invoice Financing']
+    },
     'small-business': {
-        name: 'Small Business Owners',
-        description: 'Entrepreneurs and business owners who need financial products to support their business operations. They balance personal and business finances while seeking growth opportunities.',
-        characteristics: {
-            population: '18,500',
-            assets: '$150,000 - $500,000',
-            debt: '$50,000 - $250,000',
-            dti: '28%',
-            credit: '680 - 750',
-            age: '35 - 60',
-            spend: '$8,000 - $15,000'
-        },
+        description: 'Entrepreneurs and business owners who need financial products to support their business operations and growth.',
         products: ['Business Checking', 'Line of Credit', 'Commercial Insurance', 'Business Credit Card']
     },
     'young-professionals': {
-        name: 'Young Professionals',
         description: 'Career-focused individuals in the early stages of wealth building. They prioritize convenience, digital solutions, and building credit history.',
-        characteristics: {
-            population: '42,000',
-            assets: '$25,000 - $150,000',
-            debt: '$15,000 - $80,000',
-            dti: '22%',
-            credit: '650 - 720',
-            age: '22 - 35',
-            spend: '$3,000 - $6,000'
-        },
         products: ['Checking', 'Savings', 'Credit Card', 'Auto Loan']
     },
+    'families': {
+        description: 'Households with children that prioritize financial security, education savings, and family-oriented insurance products.',
+        products: ['Checking', 'College Savings', 'Life Insurance', 'Family Credit Card']
+    },
     'retirees': {
-        name: 'Retirees',
-        description: 'Individuals transitioning from wealth accumulation to wealth preservation. They focus on income generation, estate planning, and maintaining their lifestyle.',
-        characteristics: {
-            population: '28,000',
-            assets: '$500,000 - $2,000,000',
-            debt: '$0 - $100,000',
-            dti: '15%',
-            credit: '750 - 820',
-            age: '60 - 80',
-            spend: '$4,000 - $7,000'
-        },
+        description: 'Individuals transitioning from wealth accumulation to wealth preservation. They focus on income generation and estate planning.',
         products: ['Checking', 'CD', 'Investment Account', 'Medicare Supplement']
+    },
+    'luxury': {
+        description: 'Consumers who prioritize premium experiences and exclusive benefits. They have high spending patterns and expect top-tier service.',
+        products: ['Premium Credit Card', 'Concierge Banking', 'Investment Account', 'Luxury Insurance']
+    },
+    'credit-seekers': {
+        description: 'Individuals working to build or rebuild their credit history. They need products designed for credit improvement.',
+        products: ['Secured Credit Card', 'Credit Builder Loan', 'Checking', 'Financial Education']
+    },
+    'digital-natives': {
+        description: 'Tech-savvy individuals who prefer digital-first banking experiences. They value mobile apps, instant transfers, and automation.',
+        products: ['Digital Checking', 'Mobile Savings', 'Virtual Credit Card', 'Crypto Services']
+    },
+    'renters': {
+        description: 'Individuals who rent their primary residence. They may be saving for homeownership or prefer renting flexibility.',
+        products: ['Renters Insurance', 'Savings', 'Credit Card', 'Auto Loan']
+    },
+    'students': {
+        description: 'College students and young adults starting their financial journey. They need simple, low-fee products with educational resources.',
+        products: ['Student Checking', 'Student Credit Card', 'Savings', 'Student Loans']
+    },
+    'financially-distressed': {
+        description: 'Individuals experiencing financial hardship. They need supportive products, debt management tools, and financial counseling.',
+        products: ['Basic Checking', 'Debt Consolidation', 'Financial Counseling', 'Emergency Savings']
+    },
+    'at-risk': {
+        description: 'Customers showing signs of potential financial difficulty. They benefit from proactive outreach and preventive financial tools.',
+        products: ['Account Monitoring', 'Budget Tools', 'Flexible Credit', 'Financial Planning']
     }
 };
+
+// ----------------------------------------
+// Raw data storage (loaded from pt.json)
+// ----------------------------------------
+let RAW_STATE_DATA = [];
+let USA_AGGREGATES = {};
+let dataLoaded = false;
+
+/**
+ * ========================================
+ * NUMBER FORMATTING FUNCTIONS
+ * ========================================
+ * Formats large numbers for display.
+ *
+ * CUSTOMIZATION:
+ * - Change thresholds by modifying the if conditions
+ * - Change suffixes by modifying 'B', 'MM', 'K' strings
+ * - Change decimal places by modifying toFixed() parameter
+ */
+
+/**
+ * Formats a number with suffix (K, MM, B)
+ * @param {number} num - The number to format
+ * @param {boolean} isCurrency - If true, adds $ prefix
+ * @returns {string} Formatted string
+ *
+ * Examples:
+ *   formatLargeNumber(1500000000, true)  => "$1.5B"
+ *   formatLargeNumber(2500000, true)     => "$2.5MM"
+ *   formatLargeNumber(45000, true)       => "$45K"
+ *   formatLargeNumber(500, true)         => "$500"
+ */
+function formatLargeNumber(num, isCurrency = false) {
+    const prefix = isCurrency ? '$' : '';
+
+    // ========================================
+    // THRESHOLD CONFIGURATION
+    // Modify these values to change when each suffix is used
+    // ========================================
+    const BILLION_THRESHOLD = 1_000_000_000;   // 1 billion
+    const MILLION_THRESHOLD = 1_000_000;       // 1 million
+    const THOUSAND_THRESHOLD = 1_000;          // 1 thousand
+
+    // ========================================
+    // DECIMAL PLACES CONFIGURATION
+    // Modify these values to change decimal precision
+    // ========================================
+    const BILLION_DECIMALS = 2;   // e.g., 1.50B
+    const MILLION_DECIMALS = 1;   // e.g., 2.5MM
+    const THOUSAND_DECIMALS = 1;  // e.g., 45.2K
+
+    if (num >= BILLION_THRESHOLD) {
+        return prefix + (num / BILLION_THRESHOLD).toFixed(BILLION_DECIMALS) + 'B';
+    } else if (num >= MILLION_THRESHOLD) {
+        return prefix + (num / MILLION_THRESHOLD).toFixed(MILLION_DECIMALS) + 'MM';
+    } else if (num >= THOUSAND_THRESHOLD) {
+        return prefix + (num / THOUSAND_THRESHOLD).toFixed(THOUSAND_DECIMALS) + 'K';
+    } else {
+        return prefix + num.toLocaleString('en-US');
+    }
+}
+
+/**
+ * Formats a range of numbers (min - max)
+ * @param {number} min - Minimum value
+ * @param {number} max - Maximum value
+ * @param {boolean} isCurrency - If true, adds $ prefix
+ * @returns {string} Formatted range string
+ */
+function formatRange(min, max, isCurrency = false) {
+    return `${formatLargeNumber(min, isCurrency)} - ${formatLargeNumber(max, isCurrency)}`;
+}
+
+/**
+ * Formats DTI ratio as percentage
+ * @param {number} ratio - Decimal ratio (e.g., 0.35)
+ * @returns {string} Percentage string (e.g., "35%")
+ */
+function formatDTI(ratio) {
+    return Math.round(ratio * 100) + '%';
+}
+
+// ----------------------------------------
+// Data Loading Function
+// ----------------------------------------
+
+/**
+ * Loads state persona data from pt.json
+ * Calculates USA aggregates for each persona type
+ */
+async function loadPersonaData() {
+    try {
+        const response = await fetch('pt.json');
+        if (!response.ok) {
+            throw new Error(`Failed to load pt.json: ${response.status}`);
+        }
+        RAW_STATE_DATA = await response.json();
+
+        // Calculate USA aggregates for each persona type
+        calculateUSAAggregates();
+
+        dataLoaded = true;
+        console.log('Persona data loaded successfully from pt.json');
+
+        // Update UI with loaded data
+        updatePersonaDetails(currentSelectedPersona);
+
+    } catch (error) {
+        console.error('Error loading persona data:', error);
+        // Fallback: keep default values
+    }
+}
+
+/**
+ * ========================================
+ * USA AGGREGATES CALCULATION
+ * ========================================
+ * Calculates national-level aggregates for each persona type:
+ * - Population: SUM of all state populations
+ * - Assets/Debt/Credit/Age/Spend: Population-weighted AVERAGE
+ * - DTI: Simple AVERAGE (not weighted)
+ *
+ * CUSTOMIZATION:
+ * - To change DTI to weighted average, modify the dtiSum calculation
+ * - To add new aggregate fields, add them in the accumulator and calculation
+ */
+function calculateUSAAggregates() {
+    // Get all unique persona names from the first state
+    if (RAW_STATE_DATA.length === 0) return;
+
+    const personaNames = Object.keys(RAW_STATE_DATA[0].personas);
+
+    personaNames.forEach(personaName => {
+        let totalPopulation = 0;
+        let dtiSum = 0;
+        let dtiCount = 0;
+
+        // Weighted sums (will divide by total population later)
+        let assetsMinSum = 0, assetsMaxSum = 0;
+        let debtMinSum = 0, debtMaxSum = 0;
+        let creditMinSum = 0, creditMaxSum = 0;
+        let ageMinSum = 0, ageMaxSum = 0;
+        let spendMinSum = 0, spendMaxSum = 0;
+
+        RAW_STATE_DATA.forEach(state => {
+            const persona = state.personas[personaName];
+            if (!persona) return;
+
+            const pop = persona.pop_py || 0;
+            totalPopulation += pop;
+
+            // DTI: Simple average (sum and divide by count)
+            // ========================================
+            // CUSTOMIZATION: To use weighted average for DTI,
+            // change this to: dtiSum += persona.debt_to_income_ratio * pop;
+            // and calculate: dtiSum / totalPopulation
+            // ========================================
+            dtiSum += persona.debt_to_income_ratio;
+            dtiCount++;
+
+            // Weighted sums for ranges
+            assetsMinSum += persona.assets.min * pop;
+            assetsMaxSum += persona.assets.max * pop;
+            debtMinSum += persona.debt.min * pop;
+            debtMaxSum += persona.debt.max * pop;
+            creditMinSum += persona.credit_score.min * pop;
+            creditMaxSum += persona.credit_score.max * pop;
+            ageMinSum += persona.age_group.min * pop;
+            ageMaxSum += persona.age_group.max * pop;
+            spendMinSum += persona.monthly_spend.min * pop;
+            spendMaxSum += persona.monthly_spend.max * pop;
+        });
+
+        // Calculate weighted averages
+        USA_AGGREGATES[personaName] = {
+            population: totalPopulation,
+            assets: {
+                min: Math.round(assetsMinSum / totalPopulation),
+                max: Math.round(assetsMaxSum / totalPopulation)
+            },
+            debt: {
+                min: Math.round(debtMinSum / totalPopulation),
+                max: Math.round(debtMaxSum / totalPopulation)
+            },
+            dti: dtiCount > 0 ? dtiSum / dtiCount : 0,  // Simple average for DTI
+            credit: {
+                min: Math.round(creditMinSum / totalPopulation),
+                max: Math.round(creditMaxSum / totalPopulation)
+            },
+            age: {
+                min: Math.round(ageMinSum / totalPopulation),
+                max: Math.round(ageMaxSum / totalPopulation)
+            },
+            spend: {
+                min: Math.round(spendMinSum / totalPopulation),
+                max: Math.round(spendMaxSum / totalPopulation)
+            }
+        };
+    });
+
+    console.log('USA aggregates calculated:', Object.keys(USA_AGGREGATES).length, 'persona types');
+}
+
+/**
+ * Gets persona data for a specific state
+ * @param {string} stateCode - Two-letter state code (e.g., "CA")
+ * @param {string} personaKey - Persona key from HTML (e.g., "homeowners")
+ * @returns {object|null} Persona data or null if not found
+ */
+function getStatePersonaData(stateCode, personaKey) {
+    const personaName = PERSONA_KEY_MAP[personaKey];
+    if (!personaName) return null;
+
+    const state = RAW_STATE_DATA.find(s => s.state_code === stateCode);
+    if (!state) return null;
+
+    return state.personas[personaName] || null;
+}
+
+/**
+ * Gets USA aggregate data for a persona
+ * @param {string} personaKey - Persona key from HTML
+ * @returns {object|null} USA aggregate data or null
+ */
+function getUSAPersonaData(personaKey) {
+    const personaName = PERSONA_KEY_MAP[personaKey];
+    if (!personaName) return null;
+
+    return USA_AGGREGATES[personaName] || null;
+}
+
+// ----------------------------------------
+// Legacy personas object (for backward compatibility)
+// This will be populated dynamically from pt.json
+// ----------------------------------------
+const personas = {};
 
 const campaignData = [
     { name: 'HELOC Spring Push', persona: 'Home Owners', status: 'active', reach: 8420, conversion: 72, revenue: 542000 },
@@ -77,56 +359,60 @@ const campaignData = [
 ];
 
 // ----------------------------------------
-// State-level Data Simulation
+// State Code Mapping (TopoJSON ID to State Code)
 // ----------------------------------------
-const stateDataFactors = {};
-function createStateDataFactors(seed) {
-    const rand = scatterLcg(seed);
-    for (let i = 1; i <= 56; i++) {
-        const id = i.toString().padStart(2, '0');
-        stateDataFactors[id] = {
-            population: 0.5 + rand() * 1.5,
-            assets: 0.8 + rand() * 0.4,
-            debt: 0.7 + rand() * 0.6,
-            dti: 0.9 + rand() * 0.2,
-            credit: 0.95 + rand() * 0.1,
-        };
+
+/**
+ * ========================================
+ * STATE ID TO CODE MAPPING
+ * ========================================
+ * Maps TopoJSON numeric IDs to two-letter state codes.
+ * Used when clicking on the map to get state data.
+ */
+const STATE_ID_TO_CODE = {
+    '01': 'AL', '02': 'AK', '04': 'AZ', '05': 'AR', '06': 'CA',
+    '08': 'CO', '09': 'CT', '10': 'DE', '11': 'DC', '12': 'FL',
+    '13': 'GA', '15': 'HI', '16': 'ID', '17': 'IL', '18': 'IN',
+    '19': 'IA', '20': 'KS', '21': 'KY', '22': 'LA', '23': 'ME',
+    '24': 'MD', '25': 'MA', '26': 'MI', '27': 'MN', '28': 'MS',
+    '29': 'MO', '30': 'MT', '31': 'NE', '32': 'NV', '33': 'NH',
+    '34': 'NJ', '35': 'NM', '36': 'NY', '37': 'NC', '38': 'ND',
+    '39': 'OH', '40': 'OK', '41': 'OR', '42': 'PA', '44': 'RI',
+    '45': 'SC', '46': 'SD', '47': 'TN', '48': 'TX', '49': 'UT',
+    '50': 'VT', '51': 'VA', '53': 'WA', '54': 'WV', '55': 'WI',
+    '56': 'WY', '72': 'PR'
+};
+
+/**
+ * Gets real persona data for a specific state from pt.json
+ * @param {string} stateId - TopoJSON state ID
+ * @param {string} personaKey - Current selected persona key
+ * @returns {object} Formatted state characteristics
+ */
+function getStateCharacteristics(stateId, personaKey) {
+    const stateCode = STATE_ID_TO_CODE[stateId];
+    if (!stateCode || !dataLoaded) {
+        return null;
     }
-}
-createStateDataFactors(20260206); // Seed with a fixed date for consistency
 
-function generateStateCharData(baseChars, stateId) {
-    const factors = stateDataFactors[stateId] || { population: 1, assets: 1, debt: 1, dti: 1, credit: 1 };
+    const personaName = PERSONA_KEY_MAP[personaKey];
+    if (!personaName) return null;
 
-    const cleanAndMultiply = (val, factor) => {
-        if (typeof val !== 'string') return '';
-        const numericVal = parseFloat(val.replace(/[^0-9.-]+/g,""));
-        if (isNaN(numericVal)) return val;
-        return (numericVal * factor).toLocaleString('en-US', { maximumFractionDigits: 0 });
-    };
+    const state = RAW_STATE_DATA.find(s => s.state_code === stateCode);
+    if (!state || !state.personas[personaName]) return null;
 
-    const cleanAndMultiplyRange = (rangeStr, factor) => {
-        if (typeof rangeStr !== 'string') return '';
-        const parts = rangeStr.split('-').map(s => s.trim());
-        if (parts.length !== 2) return rangeStr;
-        const low = parseFloat(parts[0].replace(/[^0-9.-]+/g,""));
-        const high = parseFloat(parts[1].replace(/[^0-9.-]+/g,""));
-        if (isNaN(low) || isNaN(high)) return rangeStr;
-
-        const format = (num) => {
-            return num.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
-        }
-        return `${format(low * factor)} - ${format(high * factor)}`;
-    };
+    const data = state.personas[personaName];
 
     return {
-        population: cleanAndMultiply(baseChars.population, factors.population),
-        assets: cleanAndMultiplyRange(baseChars.assets, factors.assets),
-        debt: cleanAndMultiplyRange(baseChars.debt, factors.debt),
-        dti: `${Math.round(parseFloat(baseChars.dti) * factors.dti)}%`,
-        credit: baseChars.credit, // Keep credit score and age group same as national
-        age: baseChars.age,
-        spend: cleanAndMultiplyRange(baseChars.spend, factors.population * factors.dti) // spend is related to pop and dti
+        stateName: state.state_name,
+        stateCode: stateCode,
+        population: formatLargeNumber(data.pop_py),
+        assets: formatRange(data.assets.min, data.assets.max, true),
+        debt: formatRange(data.debt.min, data.debt.max, true),
+        dti: formatDTI(data.debt_to_income_ratio),
+        credit: `${data.credit_score.min} - ${data.credit_score.max}`,
+        age: `${data.age_group.min} - ${data.age_group.max}`,
+        spend: formatRange(data.monthly_spend.min, data.monthly_spend.max, true)
     };
 }
 
@@ -210,7 +496,7 @@ const productConfig = {
 
 // Current state
 let currentSelectedProduct = 'heloc';
-let currentSelectedPersona = 'home-owners';
+let currentSelectedPersona = 'homeowners';
 
 // Map control state
 let mapControlsOpen = false;
@@ -320,7 +606,8 @@ function resetWizard() {
     personaTags.forEach((tag, index) => {
         tag.classList.toggle('active', index === 0);
     });
-    updatePersonaDetails('home-owners');
+    currentSelectedPersona = 'homeowners';
+    updatePersonaDetails('homeowners');
 }
 
 /**
@@ -343,15 +630,16 @@ function nextWizardStep() {
         // Generate scatter chart when entering step 2
         if (currentStep + 1 === 2) {
             // Update population subtitle with selected persona
+            const personaDisplayName = PERSONA_KEY_MAP[currentSelectedPersona] || 'Homeowners';
             const subtitleEl = document.querySelector('.population-subtitle');
             if (subtitleEl) {
-                subtitleEl.textContent = personas[currentSelectedPersona]?.name || 'Home Owners';
+                subtitleEl.textContent = personaDisplayName;
             }
 
             // Update scatter legend with selected persona
             const legendEl = document.querySelector('.scatter-legend span:last-child');
             if (legendEl) {
-                legendEl.textContent = personas[currentSelectedPersona]?.name || 'Home Owners';
+                legendEl.textContent = personaDisplayName;
             }
 
             // Reset pagination to page 1
@@ -429,28 +717,46 @@ if (closeModalBtn) closeModalBtn.addEventListener('click', closeSuccessModal);
 
 /**
  * Update persona details based on selection
+ * Uses data from pt.json (USA aggregates) and PERSONA_META for descriptions
  */
 function updatePersonaDetails(personaKey) {
-    const persona = personas[personaKey];
-    if (!persona) return;
+    const personaName = PERSONA_KEY_MAP[personaKey];
+    const meta = PERSONA_META[personaKey];
 
-    // Update name and description
-    document.getElementById('persona-name').textContent = persona.name;
-    document.getElementById('persona-description').textContent = persona.description;
+    if (!personaName || !meta) {
+        console.warn('Unknown persona key:', personaKey);
+        return;
+    }
 
-    // Update characteristics
-    document.getElementById('char-population').textContent = persona.characteristics.population;
-    document.getElementById('char-assets').textContent = persona.characteristics.assets;
-    document.getElementById('char-debt').textContent = persona.characteristics.debt;
-    document.getElementById('char-dti').textContent = persona.characteristics.dti;
-    document.getElementById('char-credit').textContent = persona.characteristics.credit;
-    document.getElementById('char-age').textContent = persona.characteristics.age;
-    document.getElementById('char-spend').textContent = persona.characteristics.spend;
+    // Update name and description (from static PERSONA_META)
+    document.getElementById('persona-name').textContent = personaName;
+    document.getElementById('persona-description').textContent = meta.description;
 
-    // Update products owned
+    // Update characteristics from USA aggregates (loaded from pt.json)
+    const usaData = USA_AGGREGATES[personaName];
+    if (usaData) {
+        document.getElementById('char-population').textContent = formatLargeNumber(usaData.population);
+        document.getElementById('char-assets').textContent = formatRange(usaData.assets.min, usaData.assets.max, true);
+        document.getElementById('char-debt').textContent = formatRange(usaData.debt.min, usaData.debt.max, true);
+        document.getElementById('char-dti').textContent = formatDTI(usaData.dti);
+        document.getElementById('char-credit').textContent = `${usaData.credit.min} - ${usaData.credit.max}`;
+        document.getElementById('char-age').textContent = `${usaData.age.min} - ${usaData.age.max}`;
+        document.getElementById('char-spend').textContent = formatRange(usaData.spend.min, usaData.spend.max, true);
+    } else {
+        // Fallback if data not loaded yet
+        document.getElementById('char-population').textContent = 'Loading...';
+        document.getElementById('char-assets').textContent = 'Loading...';
+        document.getElementById('char-debt').textContent = 'Loading...';
+        document.getElementById('char-dti').textContent = 'Loading...';
+        document.getElementById('char-credit').textContent = 'Loading...';
+        document.getElementById('char-age').textContent = 'Loading...';
+        document.getElementById('char-spend').textContent = 'Loading...';
+    }
+
+    // Update products owned (from static PERSONA_META)
     const productTagsContainer = document.querySelector('.product-tags');
     if (productTagsContainer) {
-        productTagsContainer.innerHTML = persona.products
+        productTagsContainer.innerHTML = meta.products
             .map(product => `<span class="product-tag">${product}</span>`)
             .join('');
     }
@@ -598,24 +904,36 @@ function hideStateComparison() {
 }
 
 /**
- * Shows the state comparison panel, populates it with data, and shrinks the USA panel.
- * @param {object} stateGeoData - The properties object from the D3 geo data.
+ * Shows the state comparison panel, populates it with REAL data from pt.json.
+ * @param {object} stateGeoData - The D3 geo data object containing id and properties.
  */
 function showStateComparison(stateGeoData) {
     if (!comparisonWrapper || !stateCharCard) return;
 
-    const baseChars = personas[currentSelectedPersona].characteristics;
-    const stateData = generateStateCharData(baseChars, stateGeoData.id);
-    
-    // Populate the state card
-    document.getElementById('state-char-title').textContent = `St: ${stateGeoData.properties.name}`;
-    document.getElementById('state-char-population').textContent = stateData.population;
-    document.getElementById('state-char-assets').textContent = stateData.assets;
-    document.getElementById('state-char-debt').textContent = stateData.debt;
-    document.getElementById('state-char-dti').textContent = stateData.dti;
-    document.getElementById('state-char-credit').textContent = stateData.credit;
-    document.getElementById('state-char-age').textContent = stateData.age;
-    document.getElementById('state-char-spend').textContent = stateData.spend;
+    // Get real state data from pt.json
+    const stateData = getStateCharacteristics(stateGeoData.id, currentSelectedPersona);
+
+    if (!stateData) {
+        // If no data available for this state/persona, show message
+        document.getElementById('state-char-title').textContent = `St: ${stateGeoData.properties.name}`;
+        document.getElementById('state-char-population').textContent = 'N/A';
+        document.getElementById('state-char-assets').textContent = 'N/A';
+        document.getElementById('state-char-debt').textContent = 'N/A';
+        document.getElementById('state-char-dti').textContent = 'N/A';
+        document.getElementById('state-char-credit').textContent = 'N/A';
+        document.getElementById('state-char-age').textContent = 'N/A';
+        document.getElementById('state-char-spend').textContent = 'N/A';
+    } else {
+        // Populate the state card with real data
+        document.getElementById('state-char-title').textContent = `St: ${stateData.stateName}`;
+        document.getElementById('state-char-population').textContent = stateData.population;
+        document.getElementById('state-char-assets').textContent = stateData.assets;
+        document.getElementById('state-char-debt').textContent = stateData.debt;
+        document.getElementById('state-char-dti').textContent = stateData.dti;
+        document.getElementById('state-char-credit').textContent = stateData.credit;
+        document.getElementById('state-char-age').textContent = stateData.age;
+        document.getElementById('state-char-spend').textContent = stateData.spend;
+    }
 
     // Show the card
     stateCharCard.classList.remove('hidden');
@@ -1370,7 +1688,7 @@ function showDownloadOptions(event) {
     dropdown.querySelectorAll('.download-option').forEach(option => {
         option.addEventListener('click', () => {
             const format = option.dataset.format;
-            const personaName = personas[currentSelectedPersona]?.name || 'Population';
+            const personaName = (PERSONA_KEY_MAP[currentSelectedPersona] || 'Population').replace(/[^a-zA-Z0-9]/g, '_');
             const timestamp = new Date().toISOString().slice(0, 10);
 
             if (format === 'csv') {
@@ -1401,7 +1719,10 @@ document.querySelector('.download-btn')?.addEventListener('click', showDownloadO
 // Initialize Application
 // ----------------------------------------
 
-function init() {
+async function init() {
+    // Load persona data from pt.json first
+    await loadPersonaData();
+
     // Populate tables
     populateCampaignTable();
     populatePopulationTablePaginated();
@@ -1409,8 +1730,8 @@ function init() {
     // Generate USA map
     generateUSAMap();
 
-    // Set initial persona details
-    updatePersonaDetails('home-owners');
+    // Set initial persona details (now uses data from pt.json)
+    updatePersonaDetails('homeowners');
 
     // Initialize scatter data for default product
     currentScatterData = generateScatterData(scatterConfig.n, productConfig['heloc'].scatterSeed);
