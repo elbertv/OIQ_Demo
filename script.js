@@ -769,8 +769,46 @@ personaTags.forEach(tag => {
         tag.classList.add('active');
         currentSelectedPersona = tag.dataset.persona;
         updatePersonaDetails(tag.dataset.persona);
+
+        // If a state is currently selected, update its data for the new persona
+        updateStateCardIfVisible();
     });
 });
+
+/**
+ * Updates the state comparison card if it's currently visible.
+ * Called when the user changes persona type while a state is selected.
+ */
+function updateStateCardIfVisible() {
+    // Check if state card is visible and a state is selected
+    if (!mapActiveStateId || !comparisonWrapper || !comparisonWrapper.classList.contains('active')) {
+        return;
+    }
+
+    // Get the state data for the current persona
+    const stateData = getStateCharacteristics(mapActiveStateId, currentSelectedPersona);
+
+    if (!stateData) {
+        // If no data available, show N/A
+        document.getElementById('state-char-population').textContent = 'N/A';
+        document.getElementById('state-char-assets').textContent = 'N/A';
+        document.getElementById('state-char-debt').textContent = 'N/A';
+        document.getElementById('state-char-dti').textContent = 'N/A';
+        document.getElementById('state-char-credit').textContent = 'N/A';
+        document.getElementById('state-char-age').textContent = 'N/A';
+        document.getElementById('state-char-spend').textContent = 'N/A';
+    } else {
+        // Update the state card with new persona data
+        document.getElementById('state-char-title').textContent = `St: ${stateData.stateName}`;
+        document.getElementById('state-char-population').textContent = stateData.population;
+        document.getElementById('state-char-assets').textContent = stateData.assets;
+        document.getElementById('state-char-debt').textContent = stateData.debt;
+        document.getElementById('state-char-dti').textContent = stateData.dti;
+        document.getElementById('state-char-credit').textContent = stateData.credit;
+        document.getElementById('state-char-age').textContent = stateData.age;
+        document.getElementById('state-char-spend').textContent = stateData.spend;
+    }
+}
 
 // ----------------------------------------
 // Product Selection Functions
