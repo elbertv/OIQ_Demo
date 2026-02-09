@@ -20,7 +20,9 @@ This project is built with a focus on modern, vanilla web technologies. While it
 ## Agent Git Commit Convention
 
 - For every change made to the project, the agent must perform a git commit.
-- The commit message must follow this format: `GEMINI: {comentario} yyyy_mm_dd_hh_mm`.
+- **Workflow:** Always run `git add .` before committing to ensure all changes (including new files) are tracked.
+- **Commit Message Format:** `GEMINI: {comentario} yyyy_mm_dd_hh_mm`
+- The agent acts as a developer in the project and follows these guidelines strictly. Branch management is handled by the user..
 
 - **Core Technology:** Vanilla HTML5, CSS3, and modern JavaScript (ES6+).
 - **Dependencies:**
