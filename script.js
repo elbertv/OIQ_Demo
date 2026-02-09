@@ -838,6 +838,22 @@ function updatePropensityScore(productKey) {
     if (!config) return;
 
     const score = config.propensityScore;
+    setPropensityUI(score);
+}
+
+/**
+ * Map slider percentage (0-100) to threshold Y position (-2 to 2)
+ */
+function scoreToThreshold(score) {
+    const min = scatterConfig.yDomain[0];
+    const max = scatterConfig.yDomain[1];
+    return min + (score / 100) * (max - min);
+}
+
+/**
+ * Update propensity UI (value + slider) and threshold line
+ */
+function setPropensityUI(score) {
     const valueEl = document.getElementById('propensity-value');
     const sliderEl = document.getElementById('propensity-slider');
 
@@ -847,9 +863,10 @@ function updatePropensityScore(productKey) {
 
     if (sliderEl) {
         sliderEl.value = score;
-        // Update slider background
         sliderEl.style.background = `linear-gradient(to right, var(--accent-green) 0%, var(--accent-green) ${score}%, var(--gray-300) ${score}%, var(--gray-300) 100%)`;
     }
+
+    scatterConfig.thresholdY = scoreToThreshold(score);
 }
 
 /**
@@ -1458,9 +1475,12 @@ window.addEventListener("resize", () => {
 
 // Propensity slider - update value display when moved
 document.getElementById('propensity-slider')?.addEventListener('input', function () {
-    // Keep slider at the product's propensity value
-    const score = productConfig[currentSelectedProduct]?.propensityScore || 80;
-    this.value = score;
+    const score = parseInt(this.value, 10) || 0;
+    setPropensityUI(score);
+
+    if (document.getElementById('scatter-chart')?.offsetParent !== null) {
+        generateScatterChart();
+    }
 });
 
 // ----------------------------------------
