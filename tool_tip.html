@@ -303,7 +303,7 @@
     <header>
       <div>
         <h1>Tooltip Lab: Scatter + Burbuja</h1>
-        <p>Ajusta tamao, tipografa y offset para igualar el tooltip de la imagen.</p>
+        <p>Ajusta tamano, tipografia y offset para igualar el tooltip de la imagen.</p>
       </div>
     </header>
 
@@ -326,7 +326,7 @@
       </div>
 
       <div class="control">
-        <label for="tipFontSize">Tamao texto <output id="tipFontSizeOut">28</output></label>
+        <label for="tipFontSize">Tamano texto <output id="tipFontSizeOut">28</output></label>
         <input id="tipFontSize" type="range" min="12" max="46" step="1" value="28" />
       </div>
 
@@ -342,7 +342,7 @@
       </div>
 
       <div class="control">
-        <label for="tipCircle">Crculo blanco <output id="tipCircleOut">64</output></label>
+        <label for="tipCircle">Circulo blanco <output id="tipCircleOut">64</output></label>
         <input id="tipCircle" type="range" min="30" max="120" step="2" value="64" />
       </div>
 
@@ -380,13 +380,12 @@
     </section>
 
     <section class="panel code">
-      <h2>Cigo</h2>
+      <h2>Codigo</h2>
       <button id="copyCode">Copiar HTML</button>
       <pre><code id="code-output"></code></pre>
     </section>
   </div>
 
-  <script src="https://d3js.org/d3.v7.min.js"></script>
   <script>
     const scatterConfig = {
       n: 40,
@@ -404,6 +403,40 @@
       pinnedDatum: null,
       seed: 4680
     };
+
+    function createSvgEl(tag, attrs = {}) {
+      const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+      Object.entries(attrs).forEach(([key, value]) => el.setAttribute(key, value));
+      return el;
+    }
+
+    function appendSvg(parent, tag, attrs) {
+      const el = createSvgEl(tag, attrs);
+      parent.appendChild(el);
+      return el;
+    }
+
+    function clearSvg(svg) {
+      while (svg.firstChild) {
+        svg.removeChild(svg.firstChild);
+      }
+    }
+
+    function scaleLinear(domain, range) {
+      const [d0, d1] = domain;
+      const [r0, r1] = range;
+      const m = (r1 - r0) / (d1 - d0);
+      return (value) => r0 + (value - d0) * m;
+    }
+
+    function ticks(min, max, count) {
+      const step = (max - min) / count;
+      const values = [];
+      for (let i = 0; i <= count; i += 1) {
+        values.push(min + step * i);
+      }
+      return values;
+    }
 
     function scatterLcg(seed = 1234567) {
       let s = seed >>> 0;
@@ -441,101 +474,104 @@
       const chartEl = document.getElementById("scatter-chart");
       const tipEl = document.getElementById("scatter-tip");
       const tipValueEl = document.getElementById("scatter-tip-value");
-      const svg = d3.select("#scatter-svg");
+      const svg = document.getElementById("scatter-svg");
 
-      svg.selectAll("*").remove();
+      clearSvg(svg);
 
       const width = chartEl.clientWidth;
       const height = 400;
-      svg.attr("viewBox", `0 0 ${width} ${height}`);
+      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
 
       const cfg = scatterConfig;
       const innerW = width - cfg.margin.left - cfg.margin.right;
       const innerH = height - cfg.margin.top - cfg.margin.bottom;
 
-      const g = svg.append("g")
-        .attr("transform", `translate(${cfg.margin.left},${cfg.margin.top})`);
+      const g = appendSvg(svg, "g", { transform: `translate(${cfg.margin.left},${cfg.margin.top})` });
 
-      const x = d3.scaleLinear().domain(cfg.xDomain).range([0, innerW]);
-      const y = d3.scaleLinear().domain(cfg.yDomain).range([innerH, 0]);
+      const x = scaleLinear(cfg.xDomain, [0, innerW]);
+      const y = scaleLinear(cfg.yDomain, [innerH, 0]);
 
-      g.append("g")
-        .attr("class", "scatter-grid")
-        .call(d3.axisLeft(y).ticks(6).tickSize(-innerW).tickFormat(""))
-        .call(s => s.select(".domain").remove());
+      const yTicks = ticks(cfg.yDomain[0], cfg.yDomain[1], 6);
+      const xTicks = ticks(cfg.xDomain[0], cfg.xDomain[1], 10);
 
-      g.append("g")
-        .attr("class", "scatter-grid")
-        .attr("transform", `translate(0,${innerH})`)
-        .call(d3.axisBottom(x).ticks(10).tickSize(-innerH).tickFormat(""))
-        .call(s => s.select(".domain").remove());
+      const gridGroup = appendSvg(g, "g", { class: "scatter-grid" });
+      yTicks.forEach(value => {
+        const yPos = y(value);
+        appendSvg(gridGroup, "line", {
+          x1: 0,
+          x2: innerW,
+          y1: yPos,
+          y2: yPos
+        });
+      });
 
-      g.append("g").attr("class", "scatter-axis").call(d3.axisLeft(y).ticks(6));
-      g.append("g").attr("class", "scatter-axis").attr("transform", `translate(0,${innerH})`).call(d3.axisBottom(x).ticks(10));
+      xTicks.forEach(value => {
+        const xPos = x(value);
+        appendSvg(gridGroup, "line", {
+          x1: xPos,
+          x2: xPos,
+          y1: 0,
+          y2: innerH
+        });
+      });
+
+      const axisGroup = appendSvg(g, "g", { class: "scatter-axis" });
+      appendSvg(axisGroup, "line", { x1: 0, y1: 0, x2: 0, y2: innerH });
+      appendSvg(axisGroup, "line", { x1: 0, y1: innerH, x2: innerW, y2: innerH });
+
+      yTicks.forEach(value => {
+        const yPos = y(value);
+        const label = appendSvg(axisGroup, "text", {
+          x: -10,
+          y: yPos,
+          "text-anchor": "end",
+          "dominant-baseline": "middle"
+        });
+        label.textContent = value.toFixed(1);
+      });
+
+      xTicks.forEach(value => {
+        const xPos = x(value);
+        const label = appendSvg(axisGroup, "text", {
+          x: xPos,
+          y: innerH + 24,
+          "text-anchor": "middle"
+        });
+        label.textContent = value.toFixed(0);
+      });
 
       const yT = y(cfg.thresholdY);
-      g.append("line")
-        .attr("class", "scatter-threshold")
-        .attr("x1", 0).attr("x2", innerW)
-        .attr("y1", yT).attr("y2", yT);
+      appendSvg(g, "line", {
+        class: "scatter-threshold",
+        x1: 0,
+        x2: innerW,
+        y1: yT,
+        y2: yT
+      });
 
-      g.append("text")
-        .attr("class", "scatter-threshold-label")
-        .attr("x", -32)
-        .attr("y", yT)
-        .attr("dy", "0.35em")
-        .attr("text-anchor", "end")
-        .text(cfg.thresholdY.toFixed(1));
+      const thresholdLabel = appendSvg(g, "text", {
+        class: "scatter-threshold-label",
+        x: -32,
+        y: yT,
+        dy: "0.35em",
+        "text-anchor": "end"
+      });
+      thresholdLabel.textContent = cfg.thresholdY.toFixed(1);
 
       const data = generateScatterData(cfg.n, state.seed);
       const focusValue = document.getElementById("valueText").value || "4680";
       const focusPoint = { id: focusValue, x: 4.8, y: 1.1 };
       data.push(focusPoint);
 
-      const dots = g.append("g")
-        .selectAll("circle")
-        .data(data, d => d.id)
-        .join("circle")
-        .attr("class", "scatter-point")
-        .attr("r", cfg.pointRadius)
-        .attr("cx", d => x(d.x))
-        .attr("cy", d => y(d.y));
-
-      dots
-        .on("mouseenter", (event, d) => {
-          if (state.pinned) return;
-          const pointX = cfg.margin.left + x(d.x);
-          const pointY = cfg.margin.top + y(d.y);
-          const chartWidth = chartEl.clientWidth;
-          const flipLeft = pointX > chartWidth * (1 - cfg.flipThreshold);
-          const tipX = flipLeft ? pointX - cfg.tooltipOffsetX : pointX + cfg.tooltipOffsetX;
-          showScatterTip(tipEl, tipValueEl, tipX, pointY, d.id, flipLeft);
-        })
-        .on("mousemove", (event, d) => {
-          if (state.pinned) return;
-          const pointX = cfg.margin.left + x(d.x);
-          const pointY = cfg.margin.top + y(d.y);
-          const chartWidth = chartEl.clientWidth;
-          const flipLeft = pointX > chartWidth * (1 - cfg.flipThreshold);
-          const tipX = flipLeft ? pointX - cfg.tooltipOffsetX : pointX + cfg.tooltipOffsetX;
-          showScatterTip(tipEl, tipValueEl, tipX, pointY, d.id, flipLeft);
-        })
-        .on("mouseleave", () => {
-          if (state.pinned) return;
-          tipEl.style.opacity = 0;
-          tipEl.setAttribute("aria-hidden", "true");
-        })
-        .on("click", (event, d) => {
-          event.stopPropagation();
-          state.pinned = true;
-          state.pinnedDatum = d;
-          const pointX = cfg.margin.left + x(d.x);
-          const pointY = cfg.margin.top + y(d.y);
-          const chartWidth = chartEl.clientWidth;
-          const flipLeft = pointX > chartWidth * (1 - cfg.flipThreshold);
-          const tipX = flipLeft ? pointX - cfg.tooltipOffsetX : pointX + cfg.tooltipOffsetX;
-          showScatterTip(tipEl, tipValueEl, tipX, pointY, d.id, flipLeft);
+      const dotsGroup = appendSvg(g, "g");
+      data.forEach(d => {
+        appendSvg(dotsGroup, "circle", {
+          class: "scatter-point",
+          r: cfg.pointRadius,
+          cx: x(d.x),
+          cy: y(d.y)
         });
+      });
 
       state.pinned = true;
       state.pinnedDatum = focusPoint;
@@ -771,7 +807,6 @@
     </div>
   </div>
 
-  <script src="https://d3js.org/d3.v7.min.js"><\/script>
   <script>
     const scatterConfig = {
       n: 40,
@@ -783,6 +818,40 @@
       flipThreshold: ${scatterConfig.flipThreshold},
       margin: { top: 18, right: 24, bottom: 42, left: 54 }
     };
+
+    function createSvgEl(tag, attrs = {}) {
+      const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+      Object.entries(attrs).forEach(([key, value]) => el.setAttribute(key, value));
+      return el;
+    }
+
+    function appendSvg(parent, tag, attrs) {
+      const el = createSvgEl(tag, attrs);
+      parent.appendChild(el);
+      return el;
+    }
+
+    function clearSvg(svg) {
+      while (svg.firstChild) {
+        svg.removeChild(svg.firstChild);
+      }
+    }
+
+    function scaleLinear(domain, range) {
+      const [d0, d1] = domain;
+      const [r0, r1] = range;
+      const m = (r1 - r0) / (d1 - d0);
+      return (value) => r0 + (value - d0) * m;
+    }
+
+    function ticks(min, max, count) {
+      const step = (max - min) / count;
+      const values = [];
+      for (let i = 0; i <= count; i += 1) {
+        values.push(min + step * i);
+      }
+      return values;
+    }
 
     function scatterLcg(seed = 1234567) {
       let s = seed >>> 0;
@@ -820,64 +889,103 @@
       const chartEl = document.getElementById("scatter-chart");
       const tipEl = document.getElementById("scatter-tip");
       const tipValueEl = document.getElementById("scatter-tip-value");
-      const svg = d3.select("#scatter-svg");
+      const svg = document.getElementById("scatter-svg");
 
-      svg.selectAll("*").remove();
+      clearSvg(svg);
 
       const width = chartEl.clientWidth;
       const height = 400;
-      svg.attr("viewBox", `0 0 ${width} ${height}`);
+      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
 
       const cfg = scatterConfig;
       const innerW = width - cfg.margin.left - cfg.margin.right;
       const innerH = height - cfg.margin.top - cfg.margin.bottom;
 
-      const g = svg.append("g")
-        .attr("transform", `translate(${cfg.margin.left},${cfg.margin.top})`);
+      const g = appendSvg(svg, "g", { transform: `translate(${cfg.margin.left},${cfg.margin.top})` });
 
-      const x = d3.scaleLinear().domain(cfg.xDomain).range([0, innerW]);
-      const y = d3.scaleLinear().domain(cfg.yDomain).range([innerH, 0]);
+      const x = scaleLinear(cfg.xDomain, [0, innerW]);
+      const y = scaleLinear(cfg.yDomain, [innerH, 0]);
 
-      g.append("g")
-        .attr("class", "scatter-grid")
-        .call(d3.axisLeft(y).ticks(6).tickSize(-innerW).tickFormat(""))
-        .call(s => s.select(".domain").remove());
+      const yTicks = ticks(cfg.yDomain[0], cfg.yDomain[1], 6);
+      const xTicks = ticks(cfg.xDomain[0], cfg.xDomain[1], 10);
 
-      g.append("g")
-        .attr("class", "scatter-grid")
-        .attr("transform", `translate(0,${innerH})`)
-        .call(d3.axisBottom(x).ticks(10).tickSize(-innerH).tickFormat(""))
-        .call(s => s.select(".domain").remove());
+      const gridGroup = appendSvg(g, "g", { class: "scatter-grid" });
+      yTicks.forEach(value => {
+        const yPos = y(value);
+        appendSvg(gridGroup, "line", {
+          x1: 0,
+          x2: innerW,
+          y1: yPos,
+          y2: yPos
+        });
+      });
 
-      g.append("g").attr("class", "scatter-axis").call(d3.axisLeft(y).ticks(6));
-      g.append("g").attr("class", "scatter-axis").attr("transform", `translate(0,${innerH})`).call(d3.axisBottom(x).ticks(10));
+      xTicks.forEach(value => {
+        const xPos = x(value);
+        appendSvg(gridGroup, "line", {
+          x1: xPos,
+          x2: xPos,
+          y1: 0,
+          y2: innerH
+        });
+      });
+
+      const axisGroup = appendSvg(g, "g", { class: "scatter-axis" });
+      appendSvg(axisGroup, "line", { x1: 0, y1: 0, x2: 0, y2: innerH });
+      appendSvg(axisGroup, "line", { x1: 0, y1: innerH, x2: innerW, y2: innerH });
+
+      yTicks.forEach(value => {
+        const yPos = y(value);
+        const label = appendSvg(axisGroup, "text", {
+          x: -10,
+          y: yPos,
+          "text-anchor": "end",
+          "dominant-baseline": "middle"
+        });
+        label.textContent = value.toFixed(1);
+      });
+
+      xTicks.forEach(value => {
+        const xPos = x(value);
+        const label = appendSvg(axisGroup, "text", {
+          x: xPos,
+          y: innerH + 24,
+          "text-anchor": "middle"
+        });
+        label.textContent = value.toFixed(0);
+      });
 
       const yT = y(cfg.thresholdY);
-      g.append("line")
-        .attr("class", "scatter-threshold")
-        .attr("x1", 0).attr("x2", innerW)
-        .attr("y1", yT).attr("y2", yT);
+      appendSvg(g, "line", {
+        class: "scatter-threshold",
+        x1: 0,
+        x2: innerW,
+        y1: yT,
+        y2: yT
+      });
 
-      g.append("text")
-        .attr("class", "scatter-threshold-label")
-        .attr("x", -32)
-        .attr("y", yT)
-        .attr("dy", "0.35em")
-        .attr("text-anchor", "end")
-        .text(cfg.thresholdY.toFixed(1));
+      const thresholdLabel = appendSvg(g, "text", {
+        class: "scatter-threshold-label",
+        x: -32,
+        y: yT,
+        dy: "0.35em",
+        "text-anchor": "end"
+      });
+      thresholdLabel.textContent = cfg.thresholdY.toFixed(1);
 
       const data = generateScatterData(cfg.n, 4680);
       const focusPoint = { id: "${valueText}", x: 4.8, y: 1.1 };
       data.push(focusPoint);
 
-      g.append("g")
-        .selectAll("circle")
-        .data(data, d => d.id)
-        .join("circle")
-        .attr("class", "scatter-point")
-        .attr("r", cfg.pointRadius)
-        .attr("cx", d => x(d.x))
-        .attr("cy", d => y(d.y));
+      const dotsGroup = appendSvg(g, "g");
+      data.forEach(d => {
+        appendSvg(dotsGroup, "circle", {
+          class: "scatter-point",
+          r: cfg.pointRadius,
+          cx: x(d.x),
+          cy: y(d.y)
+        });
+      });
 
       const pinnedX = cfg.margin.left + x(focusPoint.x);
       const pinnedY = cfg.margin.top + y(focusPoint.y);
