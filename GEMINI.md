@@ -17,6 +17,11 @@ The project is self-contained and designed to run directly in a web browser with
 
 This project is built with a focus on modern, vanilla web technologies. While it avoids large frameworks, it selectively uses specialized libraries for data visualization.
 
+## Agent Git Commit Convention
+
+- For every change made to the project, the agent must perform a git commit.
+- The commit message must follow this format: `GEMINI: {comentario} yyyy_mm_dd_hh_mm`.
+
 - **Core Technology:** Vanilla HTML5, CSS3, and modern JavaScript (ES6+).
 - **Dependencies:**
     - **D3.js (v7):** Used for creating dynamic, interactive data visualizations (USA Map and Scatter Plot). Loaded via CDN in `index.html`.
