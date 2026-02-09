@@ -608,7 +608,7 @@ function showStateComparison(stateGeoData) {
     const stateData = generateStateCharData(baseChars, stateGeoData.id);
     
     // Populate the state card
-    document.getElementById('state-char-title').textContent = `Persona Characteristics ${stateGeoData.properties.name}`;
+    document.getElementById('state-char-title').textContent = `St: ${stateGeoData.properties.name}`;
     document.getElementById('state-char-population').textContent = stateData.population;
     document.getElementById('state-char-assets').textContent = stateData.assets;
     document.getElementById('state-char-debt').textContent = stateData.debt;

@@ -18,6 +18,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Open `index.html` in any modern browser. No server required.
 
+## Agent Git Commit Convention
+
+- For every change made to the project, the agent must perform a git commit.
+- **Workflow:** Always run `git add .` before committing to ensure all changes (including new files) are tracked.
+- **Commit Message Format:** `GEMINI: {comentario} yyyy_mm_dd_hh_mm`
+- The agent acts as a developer in the project and follows these guidelines strictly. Branch management is handled by the user..
+
+
 ## Architecture
 
 ```
