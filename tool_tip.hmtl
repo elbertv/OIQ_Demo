@@ -1,0 +1,945 @@
+﻿<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scatter Tooltip Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --font-family: "Open Sans", sans-serif;
+      --bg: #f5f7fb;
+      --panel-bg: #ffffff;
+      --text: #1f2937;
+      --text-muted: #6b7280;
+      --border: #e5e7eb;
+      --accent-orange: #ff8c1a;
+      --primary-blue: #2f61d5;
+      --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.1);
+      --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.18);
+
+      --tip-font-size: 28px;
+      --tip-padding-y: 14px;
+      --tip-padding-x: 18px;
+      --tip-min-width: 140px;
+      --tip-circle-size: 64px;
+      --tip-dot-size: 20px;
+      --tip-arrow-height: 8px;
+      --tip-arrow-width: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--font-family);
+      background: radial-gradient(circle at 20% 10%, rgba(47, 97, 213, 0.08), transparent 55%),
+        radial-gradient(circle at 90% 10%, rgba(255, 140, 26, 0.12), transparent 45%),
+        var(--bg);
+      color: var(--text);
+    }
+
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 28px 20px 40px;
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 22px;
+    }
+
+    header {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 0 8px;
+    }
+
+    header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    header p {
+      margin: 6px 0 0;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: var(--shadow-md);
+    }
+
+    .controls h2,
+    .preview h2,
+    .code h2 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      margin: 0 0 14px;
+    }
+
+    .control {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .control label {
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .control output {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    input[type="range"],
+    input[type="number"],
+    input[type="text"] {
+      width: 100%;
+      font-family: var(--font-family);
+    }
+
+    input[type="text"],
+    input[type="number"] {
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    .preview {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 12px;
+    }
+
+    .scatter-chart-container {
+      position: relative;
+      width: 100%;
+      border-radius: 14px;
+      overflow: hidden;
+      background: #ffffff;
+      border: 1px solid var(--border);
+    }
+
+    .scatter-chart-container svg {
+      width: 100%;
+      height: 400px;
+      display: block;
+    }
+
+    .scatter-grid line {
+      stroke: rgba(17, 24, 39, 0.08);
+      shape-rendering: crispEdges;
+    }
+
+    .scatter-axis path,
+    .scatter-axis line {
+      stroke: rgba(17, 24, 39, 0.25);
+      shape-rendering: crispEdges;
+    }
+
+    .scatter-axis text {
+      fill: var(--text-muted);
+      font-size: 12px;
+    }
+
+    .scatter-point {
+      fill: var(--accent-orange);
+      opacity: 0.95;
+      cursor: pointer;
+      transition: opacity 0.15s ease;
+    }
+
+    .scatter-point:hover {
+      opacity: 1;
+    }
+
+    .scatter-threshold {
+      stroke: var(--primary-blue);
+      stroke-width: 3;
+      stroke-dasharray: 8 8;
+      opacity: 0.9;
+    }
+
+    .scatter-threshold-label {
+      font-size: 12px;
+      fill: var(--primary-blue);
+      font-weight: 700;
+    }
+
+    .scatter-tip {
+      position: absolute;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.1s ease;
+      transform: translateY(-50%);
+      z-index: 10;
+    }
+
+    .scatter-tip.flip-left {
+      transform: translate(-100%, -50%);
+    }
+
+    .scatter-tip-inner {
+      position: relative;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      font-size: var(--tip-font-size);
+      font-weight: 800;
+      color: #374151;
+      padding: var(--tip-padding-y) var(--tip-padding-x);
+      min-width: var(--tip-min-width);
+      text-align: center;
+      line-height: 1;
+    }
+
+    .scatter-tip-inner::before {
+      content: "";
+      position: absolute;
+      left: calc(var(--tip-arrow-width) * -1);
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0;
+      height: 0;
+      border-top: var(--tip-arrow-height) solid transparent;
+      border-bottom: var(--tip-arrow-height) solid transparent;
+      border-right: var(--tip-arrow-width) solid #ffffff;
+      filter: drop-shadow(-2px 2px 1px rgba(0, 0, 0, 0.08));
+    }
+
+    .scatter-tip.flip-left .scatter-tip-inner::before {
+      left: auto;
+      right: calc(var(--tip-arrow-width) * -1);
+      border-right: none;
+      border-left: var(--tip-arrow-width) solid #ffffff;
+      filter: drop-shadow(2px 2px 1px rgba(0, 0, 0, 0.08));
+    }
+
+    .scatter-tip-dot {
+      position: absolute;
+      left: calc(var(--tip-circle-size) * -0.82);
+      top: 50%;
+      transform: translateY(-50%);
+      background: #ffffff;
+      border-radius: 50%;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      width: var(--tip-circle-size);
+      height: var(--tip-circle-size);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .scatter-tip.flip-left .scatter-tip-dot {
+      left: auto;
+      right: calc(var(--tip-circle-size) * -0.82);
+    }
+
+    .scatter-tip-dot::after {
+      content: "";
+      border-radius: 50%;
+      background: var(--accent-orange);
+      width: var(--tip-dot-size);
+      height: var(--tip-dot-size);
+    }
+
+    .code {
+      grid-column: 1 / -1;
+    }
+
+    .code pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 16px;
+      border-radius: 14px;
+      overflow: auto;
+      max-height: 420px;
+      font-size: 12px;
+    }
+
+    .code button {
+      margin-bottom: 12px;
+      padding: 8px 14px;
+      border-radius: 10px;
+      border: none;
+      background: var(--primary-blue);
+      color: #ffffff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    @media (max-width: 980px) {
+      .page {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div>
+        <h1>Tooltip Lab: Scatter + Burbuja</h1>
+        <p>Ajusta tamao, tipografa y offset para igualar el tooltip de la imagen.</p>
+      </div>
+    </header>
+
+    <section class="panel controls">
+      <h2>Controles</h2>
+
+      <div class="control">
+        <label for="valueText">Valor mostrado <output id="valueTextOut">4680</output></label>
+        <input id="valueText" type="text" value="4680" />
+      </div>
+
+      <div class="control">
+        <label for="pointRadius">Radio del punto <output id="pointRadiusOut">6</output></label>
+        <input id="pointRadius" type="range" min="2" max="14" step="1" value="6" />
+      </div>
+
+      <div class="control">
+        <label for="tooltipOffset">Offset X burbuja <output id="tooltipOffsetOut">18</output></label>
+        <input id="tooltipOffset" type="range" min="4" max="60" step="1" value="18" />
+      </div>
+
+      <div class="control">
+        <label for="tipFontSize">Tamao texto <output id="tipFontSizeOut">28</output></label>
+        <input id="tipFontSize" type="range" min="12" max="46" step="1" value="28" />
+      </div>
+
+      <div class="control">
+        <label for="tipPadding">Padding burbuja (Y/X) <output id="tipPaddingOut">14 / 18</output></label>
+        <input id="tipPaddingY" type="range" min="4" max="30" step="1" value="14" />
+        <input id="tipPaddingX" type="range" min="4" max="36" step="1" value="18" />
+      </div>
+
+      <div class="control">
+        <label for="tipMinWidth">Min width burbuja <output id="tipMinWidthOut">140</output></label>
+        <input id="tipMinWidth" type="range" min="80" max="240" step="2" value="140" />
+      </div>
+
+      <div class="control">
+        <label for="tipCircle">Crculo blanco <output id="tipCircleOut">64</output></label>
+        <input id="tipCircle" type="range" min="30" max="120" step="2" value="64" />
+      </div>
+
+      <div class="control">
+        <label for="tipDot">Punto interno <output id="tipDotOut">20</output></label>
+        <input id="tipDot" type="range" min="6" max="40" step="1" value="20" />
+      </div>
+
+      <div class="control">
+        <label for="tipArrow">Flecha (alto/ancho) <output id="tipArrowOut">8 / 10</output></label>
+        <input id="tipArrowHeight" type="range" min="2" max="20" step="1" value="8" />
+        <input id="tipArrowWidth" type="range" min="2" max="24" step="1" value="10" />
+      </div>
+
+      <div class="control">
+        <label for="thresholdY">Threshold Y <output id="thresholdYOut">1.2</output></label>
+        <input id="thresholdY" type="range" min="-2" max="2" step="0.1" value="1.2" />
+      </div>
+
+      <div class="control">
+        <label for="flipThreshold">Flip threshold <output id="flipThresholdOut">0.20</output></label>
+        <input id="flipThreshold" type="range" min="0.05" max="0.4" step="0.01" value="0.2" />
+      </div>
+    </section>
+
+    <section class="panel preview">
+      <h2>Preview</h2>
+      <div class="scatter-chart-container" id="scatter-chart">
+        <svg id="scatter-svg"></svg>
+        <div class="scatter-tip" id="scatter-tip" aria-hidden="true">
+          <div class="scatter-tip-dot"></div>
+          <div class="scatter-tip-inner"><span id="scatter-tip-value">4680</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel code">
+      <h2>Cigo</h2>
+      <button id="copyCode">Copiar HTML</button>
+      <pre><code id="code-output"></code></pre>
+    </section>
+  </div>
+
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script>
+    const scatterConfig = {
+      n: 40,
+      xDomain: [-6, 7],
+      yDomain: [-2, 2],
+      thresholdY: 1.2,
+      pointRadius: 6,
+      tooltipOffsetX: 18,
+      flipThreshold: 0.2,
+      margin: { top: 18, right: 24, bottom: 42, left: 54 }
+    };
+
+    const state = {
+      pinned: true,
+      pinnedDatum: null,
+      seed: 4680
+    };
+
+    function scatterLcg(seed = 1234567) {
+      let s = seed >>> 0;
+      return () => (s = (1664525 * s + 1013904223) >>> 0) / 2 ** 32;
+    }
+
+    function generateScatterData(n, seed) {
+      const rand = scatterLcg(seed);
+      const data = [];
+      for (let i = 0; i < n; i++) {
+        const x = scatterConfig.xDomain[0] + (scatterConfig.xDomain[1] - scatterConfig.xDomain[0]) * rand();
+        const trend = (x - scatterConfig.xDomain[0]) / (scatterConfig.xDomain[1] - scatterConfig.xDomain[0]);
+        let y = -1.2 + 2.6 * trend + (rand() - 0.5) * 0.9;
+        y = Math.max(scatterConfig.yDomain[0], Math.min(scatterConfig.yDomain[1], y));
+        const value = String(1000 + Math.floor(rand() * 9000));
+        data.push({ id: value, x: +x.toFixed(2), y: +y.toFixed(2) });
+      }
+      return data;
+    }
+
+    function showScatterTip(tipEl, tipValueEl, x, y, value, flipLeft = false) {
+      tipValueEl.textContent = value;
+      tipEl.style.left = x + "px";
+      tipEl.style.top = y + "px";
+      tipEl.style.opacity = 1;
+      tipEl.setAttribute("aria-hidden", "false");
+      if (flipLeft) {
+        tipEl.classList.add("flip-left");
+      } else {
+        tipEl.classList.remove("flip-left");
+      }
+    }
+
+    function renderScatter() {
+      const chartEl = document.getElementById("scatter-chart");
+      const tipEl = document.getElementById("scatter-tip");
+      const tipValueEl = document.getElementById("scatter-tip-value");
+      const svg = d3.select("#scatter-svg");
+
+      svg.selectAll("*").remove();
+
+      const width = chartEl.clientWidth;
+      const height = 400;
+      svg.attr("viewBox", `0 0 ${width} ${height}`);
+
+      const cfg = scatterConfig;
+      const innerW = width - cfg.margin.left - cfg.margin.right;
+      const innerH = height - cfg.margin.top - cfg.margin.bottom;
+
+      const g = svg.append("g")
+        .attr("transform", `translate(${cfg.margin.left},${cfg.margin.top})`);
+
+      const x = d3.scaleLinear().domain(cfg.xDomain).range([0, innerW]);
+      const y = d3.scaleLinear().domain(cfg.yDomain).range([innerH, 0]);
+
+      g.append("g")
+        .attr("class", "scatter-grid")
+        .call(d3.axisLeft(y).ticks(6).tickSize(-innerW).tickFormat(""))
+        .call(s => s.select(".domain").remove());
+
+      g.append("g")
+        .attr("class", "scatter-grid")
+        .attr("transform", `translate(0,${innerH})`)
+        .call(d3.axisBottom(x).ticks(10).tickSize(-innerH).tickFormat(""))
+        .call(s => s.select(".domain").remove());
+
+      g.append("g").attr("class", "scatter-axis").call(d3.axisLeft(y).ticks(6));
+      g.append("g").attr("class", "scatter-axis").attr("transform", `translate(0,${innerH})`).call(d3.axisBottom(x).ticks(10));
+
+      const yT = y(cfg.thresholdY);
+      g.append("line")
+        .attr("class", "scatter-threshold")
+        .attr("x1", 0).attr("x2", innerW)
+        .attr("y1", yT).attr("y2", yT);
+
+      g.append("text")
+        .attr("class", "scatter-threshold-label")
+        .attr("x", -32)
+        .attr("y", yT)
+        .attr("dy", "0.35em")
+        .attr("text-anchor", "end")
+        .text(cfg.thresholdY.toFixed(1));
+
+      const data = generateScatterData(cfg.n, state.seed);
+      const focusValue = document.getElementById("valueText").value || "4680";
+      const focusPoint = { id: focusValue, x: 4.8, y: 1.1 };
+      data.push(focusPoint);
+
+      const dots = g.append("g")
+        .selectAll("circle")
+        .data(data, d => d.id)
+        .join("circle")
+        .attr("class", "scatter-point")
+        .attr("r", cfg.pointRadius)
+        .attr("cx", d => x(d.x))
+        .attr("cy", d => y(d.y));
+
+      dots
+        .on("mouseenter", (event, d) => {
+          if (state.pinned) return;
+          const pointX = cfg.margin.left + x(d.x);
+          const pointY = cfg.margin.top + y(d.y);
+          const chartWidth = chartEl.clientWidth;
+          const flipLeft = pointX > chartWidth * (1 - cfg.flipThreshold);
+          const tipX = flipLeft ? pointX - cfg.tooltipOffsetX : pointX + cfg.tooltipOffsetX;
+          showScatterTip(tipEl, tipValueEl, tipX, pointY, d.id, flipLeft);
+        })
+        .on("mousemove", (event, d) => {
+          if (state.pinned) return;
+          const pointX = cfg.margin.left + x(d.x);
+          const pointY = cfg.margin.top + y(d.y);
+          const chartWidth = chartEl.clientWidth;
+          const flipLeft = pointX > chartWidth * (1 - cfg.flipThreshold);
+          const tipX = flipLeft ? pointX - cfg.tooltipOffsetX : pointX + cfg.tooltipOffsetX;
+          showScatterTip(tipEl, tipValueEl, tipX, pointY, d.id, flipLeft);
+        })
+        .on("mouseleave", () => {
+          if (state.pinned) return;
+          tipEl.style.opacity = 0;
+          tipEl.setAttribute("aria-hidden", "true");
+        })
+        .on("click", (event, d) => {
+          event.stopPropagation();
+          state.pinned = true;
+          state.pinnedDatum = d;
+          const pointX = cfg.margin.left + x(d.x);
+          const pointY = cfg.margin.top + y(d.y);
+          const chartWidth = chartEl.clientWidth;
+          const flipLeft = pointX > chartWidth * (1 - cfg.flipThreshold);
+          const tipX = flipLeft ? pointX - cfg.tooltipOffsetX : pointX + cfg.tooltipOffsetX;
+          showScatterTip(tipEl, tipValueEl, tipX, pointY, d.id, flipLeft);
+        });
+
+      state.pinned = true;
+      state.pinnedDatum = focusPoint;
+      const pinnedX = cfg.margin.left + x(focusPoint.x);
+      const pinnedY = cfg.margin.top + y(focusPoint.y);
+      const flipLeft = pinnedX > chartEl.clientWidth * (1 - cfg.flipThreshold);
+      const tipX = flipLeft ? pinnedX - cfg.tooltipOffsetX : pinnedX + cfg.tooltipOffsetX;
+      showScatterTip(tipEl, tipValueEl, tipX, pinnedY, focusPoint.id, flipLeft);
+    }
+
+    function updateCssVars() {
+      document.documentElement.style.setProperty("--tip-font-size", `${getNumber("tipFontSize")}px`);
+      document.documentElement.style.setProperty("--tip-padding-y", `${getNumber("tipPaddingY")}px`);
+      document.documentElement.style.setProperty("--tip-padding-x", `${getNumber("tipPaddingX")}px`);
+      document.documentElement.style.setProperty("--tip-min-width", `${getNumber("tipMinWidth")}px`);
+      document.documentElement.style.setProperty("--tip-circle-size", `${getNumber("tipCircle")}px`);
+      document.documentElement.style.setProperty("--tip-dot-size", `${getNumber("tipDot")}px`);
+      document.documentElement.style.setProperty("--tip-arrow-height", `${getNumber("tipArrowHeight")}px`);
+      document.documentElement.style.setProperty("--tip-arrow-width", `${getNumber("tipArrowWidth")}px`);
+    }
+
+    function getNumber(id) {
+      return parseFloat(document.getElementById(id).value);
+    }
+
+    function syncOutputs() {
+      document.getElementById("valueTextOut").textContent = document.getElementById("valueText").value || "";
+      document.getElementById("pointRadiusOut").textContent = document.getElementById("pointRadius").value;
+      document.getElementById("tooltipOffsetOut").textContent = document.getElementById("tooltipOffset").value;
+      document.getElementById("tipFontSizeOut").textContent = document.getElementById("tipFontSize").value;
+      document.getElementById("tipPaddingOut").textContent = `${document.getElementById("tipPaddingY").value} / ${document.getElementById("tipPaddingX").value}`;
+      document.getElementById("tipMinWidthOut").textContent = document.getElementById("tipMinWidth").value;
+      document.getElementById("tipCircleOut").textContent = document.getElementById("tipCircle").value;
+      document.getElementById("tipDotOut").textContent = document.getElementById("tipDot").value;
+      document.getElementById("tipArrowOut").textContent = `${document.getElementById("tipArrowHeight").value} / ${document.getElementById("tipArrowWidth").value}`;
+      document.getElementById("thresholdYOut").textContent = document.getElementById("thresholdY").value;
+      document.getElementById("flipThresholdOut").textContent = document.getElementById("flipThreshold").value;
+    }
+
+    function updateConfigFromControls() {
+      scatterConfig.pointRadius = getNumber("pointRadius");
+      scatterConfig.tooltipOffsetX = getNumber("tooltipOffset");
+      scatterConfig.thresholdY = getNumber("thresholdY");
+      scatterConfig.flipThreshold = getNumber("flipThreshold");
+      updateCssVars();
+      syncOutputs();
+      renderScatter();
+      updateCodeOutput();
+    }
+
+    function escapeHtml(value) {
+      return value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function getFullHtml() {
+      const tipFontSize = getNumber("tipFontSize");
+      const tipPaddingY = getNumber("tipPaddingY");
+      const tipPaddingX = getNumber("tipPaddingX");
+      const tipMinWidth = getNumber("tipMinWidth");
+      const tipCircle = getNumber("tipCircle");
+      const tipDot = getNumber("tipDot");
+      const tipArrowHeight = getNumber("tipArrowHeight");
+      const tipArrowWidth = getNumber("tipArrowWidth");
+      const valueText = document.getElementById("valueText").value || "4680";
+
+      return `<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scatter Tooltip Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --accent-orange: #ff8c1a;
+      --primary-blue: #2f61d5;
+      --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.18);
+      --tip-font-size: ${tipFontSize}px;
+      --tip-padding-y: ${tipPaddingY}px;
+      --tip-padding-x: ${tipPaddingX}px;
+      --tip-min-width: ${tipMinWidth}px;
+      --tip-circle-size: ${tipCircle}px;
+      --tip-dot-size: ${tipDot}px;
+      --tip-arrow-height: ${tipArrowHeight}px;
+      --tip-arrow-width: ${tipArrowWidth}px;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Open Sans", sans-serif;
+      background: #f5f7fb;
+      color: #1f2937;
+    }
+
+    .scatter-chart-container {
+      position: relative;
+      width: 100%;
+      border-radius: 14px;
+      overflow: hidden;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+    }
+
+    .scatter-chart-container svg {
+      width: 100%;
+      height: 400px;
+      display: block;
+    }
+
+    .scatter-grid line {
+      stroke: rgba(17, 24, 39, 0.08);
+      shape-rendering: crispEdges;
+    }
+
+    .scatter-axis path,
+    .scatter-axis line {
+      stroke: rgba(17, 24, 39, 0.25);
+      shape-rendering: crispEdges;
+    }
+
+    .scatter-axis text {
+      fill: #6b7280;
+      font-size: 12px;
+    }
+
+    .scatter-point {
+      fill: var(--accent-orange);
+      opacity: 0.95;
+    }
+
+    .scatter-threshold {
+      stroke: var(--primary-blue);
+      stroke-width: 3;
+      stroke-dasharray: 8 8;
+      opacity: 0.9;
+    }
+
+    .scatter-threshold-label {
+      font-size: 12px;
+      fill: var(--primary-blue);
+      font-weight: 700;
+    }
+
+    .scatter-tip {
+      position: absolute;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(-50%);
+    }
+
+    .scatter-tip.flip-left {
+      transform: translate(-100%, -50%);
+    }
+
+    .scatter-tip-inner {
+      position: relative;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      font-size: var(--tip-font-size);
+      font-weight: 800;
+      color: #374151;
+      padding: var(--tip-padding-y) var(--tip-padding-x);
+      min-width: var(--tip-min-width);
+      text-align: center;
+      line-height: 1;
+    }
+
+    .scatter-tip-inner::before {
+      content: "";
+      position: absolute;
+      left: calc(var(--tip-arrow-width) * -1);
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0;
+      height: 0;
+      border-top: var(--tip-arrow-height) solid transparent;
+      border-bottom: var(--tip-arrow-height) solid transparent;
+      border-right: var(--tip-arrow-width) solid #ffffff;
+      filter: drop-shadow(-2px 2px 1px rgba(0, 0, 0, 0.08));
+    }
+
+    .scatter-tip.flip-left .scatter-tip-inner::before {
+      left: auto;
+      right: calc(var(--tip-arrow-width) * -1);
+      border-right: none;
+      border-left: var(--tip-arrow-width) solid #ffffff;
+      filter: drop-shadow(2px 2px 1px rgba(0, 0, 0, 0.08));
+    }
+
+    .scatter-tip-dot {
+      position: absolute;
+      left: calc(var(--tip-circle-size) * -0.82);
+      top: 50%;
+      transform: translateY(-50%);
+      background: #ffffff;
+      border-radius: 50%;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      width: var(--tip-circle-size);
+      height: var(--tip-circle-size);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .scatter-tip.flip-left .scatter-tip-dot {
+      left: auto;
+      right: calc(var(--tip-circle-size) * -0.82);
+    }
+
+    .scatter-tip-dot::after {
+      content: "";
+      border-radius: 50%;
+      background: var(--accent-orange);
+      width: var(--tip-dot-size);
+      height: var(--tip-dot-size);
+    }
+  </style>
+</head>
+<body>
+  <div class="scatter-chart-container" id="scatter-chart">
+    <svg id="scatter-svg"></svg>
+    <div class="scatter-tip" id="scatter-tip" aria-hidden="true">
+      <div class="scatter-tip-dot"></div>
+      <div class="scatter-tip-inner"><span id="scatter-tip-value">${valueText}</span></div>
+    </div>
+  </div>
+
+  <script src="https://d3js.org/d3.v7.min.js"><\/script>
+  <script>
+    const scatterConfig = {
+      n: 40,
+      xDomain: [-6, 7],
+      yDomain: [-2, 2],
+      thresholdY: ${scatterConfig.thresholdY},
+      pointRadius: ${scatterConfig.pointRadius},
+      tooltipOffsetX: ${scatterConfig.tooltipOffsetX},
+      flipThreshold: ${scatterConfig.flipThreshold},
+      margin: { top: 18, right: 24, bottom: 42, left: 54 }
+    };
+
+    function scatterLcg(seed = 1234567) {
+      let s = seed >>> 0;
+      return () => (s = (1664525 * s + 1013904223) >>> 0) / 2 ** 32;
+    }
+
+    function generateScatterData(n, seed) {
+      const rand = scatterLcg(seed);
+      const data = [];
+      for (let i = 0; i < n; i++) {
+        const x = scatterConfig.xDomain[0] + (scatterConfig.xDomain[1] - scatterConfig.xDomain[0]) * rand();
+        const trend = (x - scatterConfig.xDomain[0]) / (scatterConfig.xDomain[1] - scatterConfig.xDomain[0]);
+        let y = -1.2 + 2.6 * trend + (rand() - 0.5) * 0.9;
+        y = Math.max(scatterConfig.yDomain[0], Math.min(scatterConfig.yDomain[1], y));
+        const value = String(1000 + Math.floor(rand() * 9000));
+        data.push({ id: value, x: +x.toFixed(2), y: +y.toFixed(2) });
+      }
+      return data;
+    }
+
+    function showScatterTip(tipEl, tipValueEl, x, y, value, flipLeft = false) {
+      tipValueEl.textContent = value;
+      tipEl.style.left = x + "px";
+      tipEl.style.top = y + "px";
+      tipEl.style.opacity = 1;
+      tipEl.setAttribute("aria-hidden", "false");
+      if (flipLeft) {
+        tipEl.classList.add("flip-left");
+      } else {
+        tipEl.classList.remove("flip-left");
+      }
+    }
+
+    function renderScatter() {
+      const chartEl = document.getElementById("scatter-chart");
+      const tipEl = document.getElementById("scatter-tip");
+      const tipValueEl = document.getElementById("scatter-tip-value");
+      const svg = d3.select("#scatter-svg");
+
+      svg.selectAll("*").remove();
+
+      const width = chartEl.clientWidth;
+      const height = 400;
+      svg.attr("viewBox", `0 0 ${width} ${height}`);
+
+      const cfg = scatterConfig;
+      const innerW = width - cfg.margin.left - cfg.margin.right;
+      const innerH = height - cfg.margin.top - cfg.margin.bottom;
+
+      const g = svg.append("g")
+        .attr("transform", `translate(${cfg.margin.left},${cfg.margin.top})`);
+
+      const x = d3.scaleLinear().domain(cfg.xDomain).range([0, innerW]);
+      const y = d3.scaleLinear().domain(cfg.yDomain).range([innerH, 0]);
+
+      g.append("g")
+        .attr("class", "scatter-grid")
+        .call(d3.axisLeft(y).ticks(6).tickSize(-innerW).tickFormat(""))
+        .call(s => s.select(".domain").remove());
+
+      g.append("g")
+        .attr("class", "scatter-grid")
+        .attr("transform", `translate(0,${innerH})`)
+        .call(d3.axisBottom(x).ticks(10).tickSize(-innerH).tickFormat(""))
+        .call(s => s.select(".domain").remove());
+
+      g.append("g").attr("class", "scatter-axis").call(d3.axisLeft(y).ticks(6));
+      g.append("g").attr("class", "scatter-axis").attr("transform", `translate(0,${innerH})`).call(d3.axisBottom(x).ticks(10));
+
+      const yT = y(cfg.thresholdY);
+      g.append("line")
+        .attr("class", "scatter-threshold")
+        .attr("x1", 0).attr("x2", innerW)
+        .attr("y1", yT).attr("y2", yT);
+
+      g.append("text")
+        .attr("class", "scatter-threshold-label")
+        .attr("x", -32)
+        .attr("y", yT)
+        .attr("dy", "0.35em")
+        .attr("text-anchor", "end")
+        .text(cfg.thresholdY.toFixed(1));
+
+      const data = generateScatterData(cfg.n, 4680);
+      const focusPoint = { id: "${valueText}", x: 4.8, y: 1.1 };
+      data.push(focusPoint);
+
+      g.append("g")
+        .selectAll("circle")
+        .data(data, d => d.id)
+        .join("circle")
+        .attr("class", "scatter-point")
+        .attr("r", cfg.pointRadius)
+        .attr("cx", d => x(d.x))
+        .attr("cy", d => y(d.y));
+
+      const pinnedX = cfg.margin.left + x(focusPoint.x);
+      const pinnedY = cfg.margin.top + y(focusPoint.y);
+      const flipLeft = pinnedX > chartEl.clientWidth * (1 - cfg.flipThreshold);
+      const tipX = flipLeft ? pinnedX - cfg.tooltipOffsetX : pinnedX + cfg.tooltipOffsetX;
+      showScatterTip(tipEl, tipValueEl, tipX, pinnedY, focusPoint.id, flipLeft);
+    }
+
+    renderScatter();
+  <\/script>
+</body>
+</html>`;
+    }
+
+    function updateCodeOutput() {
+      document.getElementById("code-output").innerHTML = escapeHtml(getFullHtml());
+    }
+
+    function addListeners() {
+      const controlIds = [
+        "valueText",
+        "pointRadius",
+        "tooltipOffset",
+        "tipFontSize",
+        "tipPaddingY",
+        "tipPaddingX",
+        "tipMinWidth",
+        "tipCircle",
+        "tipDot",
+        "tipArrowHeight",
+        "tipArrowWidth",
+        "thresholdY",
+        "flipThreshold"
+      ];
+
+      controlIds.forEach(id => {
+        document.getElementById(id).addEventListener("input", updateConfigFromControls);
+      });
+
+      document.getElementById("copyCode").addEventListener("click", async () => {
+        const text = getFullHtml();
+        try {
+          await navigator.clipboard.writeText(text);
+          document.getElementById("copyCode").textContent = "Copiado";
+          setTimeout(() => {
+            document.getElementById("copyCode").textContent = "Copiar HTML";
+          }, 1200);
+        } catch (error) {
+          document.getElementById("copyCode").textContent = "Error al copiar";
+        }
+      });
+
+      window.addEventListener("resize", () => {
+        renderScatter();
+      }, { passive: true });
+    }
+
+    updateCssVars();
+    syncOutputs();
+    renderScatter();
+    updateCodeOutput();
+    addListeners();
+  </script>
+</body>
+</html>
