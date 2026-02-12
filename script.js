@@ -203,27 +203,11 @@ function formatDTI(ratio) {
  * Loads state persona data from pt.json
  * Calculates USA aggregates for each persona type
  */
-async function loadPersonaData() {
-    try {
-        const response = await fetch('pt.json');
-        if (!response.ok) {
-            throw new Error(`Failed to load pt.json: ${response.status}`);
-        }
-        RAW_STATE_DATA = await response.json();
-
-        // Calculate USA aggregates for each persona type
-        calculateUSAAggregates();
-
-        dataLoaded = true;
-        console.log('Persona data loaded successfully from pt.json');
-
-        // Update UI with loaded data
-        updatePersonaDetails(currentSelectedPersona);
-
-    } catch (error) {
-        console.error('Error loading persona data:', error);
-        // Fallback: keep default values
-    }
+function loadPersonaData() {
+    RAW_STATE_DATA = PT_DATA;
+    calculateUSAAggregates();
+    dataLoaded = true;
+    updatePersonaDetails(currentSelectedPersona);
 }
 
 /**
@@ -1779,7 +1763,7 @@ document.querySelector('.download-btn')?.addEventListener('click', showDownloadO
 
 async function init() {
     // Load persona data from pt.json first
-    await loadPersonaData();
+    loadPersonaData();
 
     // Populate tables
     populateCampaignTable();
